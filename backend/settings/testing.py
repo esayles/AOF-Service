@@ -1,6 +1,4 @@
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3',
-    }
-}
+from .base import *
+
+DEBUG = False
+ALLOWED_HOSTS = ['.vercel.app', 'localhost']
