@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/wsgi.py",
+      "src": "aof_service/wsgi.py",
       "use": "@vercel/python",
       "config": { "maxLambdaSize": "15mb" }
     }
@@ -14,7 +14,10 @@
     },
     {
       "src": "/(.*)",
-      "dest": "backend/wsgi.py"
+      "dest": "aof_service/wsgi.py"
     }
-  ]
+  ],
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "aof_service.settings.testing"
+  }
 }
