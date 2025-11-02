@@ -25,6 +25,7 @@ jobs:
       
       - name: Run Django tests
         run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/backend"
           cd backend
           python manage.py test
         env:
