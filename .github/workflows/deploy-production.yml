@@ -25,10 +25,11 @@ jobs:
       
       - name: Run Django tests
         run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/backend"
           cd backend
           python manage.py test
         env:
-          DJANGO_SETTINGS_MODULE: backend.settings.production
+          DJANGO_SETTINGS_MODULE: aof_service.settings.production
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       
       - name: Configure AWS credentials
