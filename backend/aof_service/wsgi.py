@@ -3,3 +3,5 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'aof_service.settings.base')
 application = get_wsgi_application()
+# Vercel expects 'app' variable
+app = application

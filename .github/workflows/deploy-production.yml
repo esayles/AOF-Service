@@ -25,10 +25,11 @@ jobs:
       
       - name: Run Django tests
         run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/backend"
           cd backend
           python manage.py test
         env:
-          DJANGO_SETTINGS_MODULE: backend.settings.production
+          DJANGO_SETTINGS_MODULE: aof_service.settings.production
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
       
       - name: Configure AWS credentials
@@ -48,7 +49,7 @@ jobs:
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          application_name: ${{ secrets.EB_APPLICATION_NAME }}
+          application_name: ${{ secrets.EV_APPLICATION_NAME }}
           environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
           version_label: ${{ github.sha }}
           region: ${{ secrets.AWS_REGION }}
@@ -91,7 +92,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
       
-      - Deploy to S3
+      - name: Deploy to S3
         run: |
           cd frontend
           aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
