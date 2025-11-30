@@ -1,7 +1,11 @@
+"""Registers URL routes as well as the confirm action using a "DRF (Django REST Framework) Router", 
+which is essentially a way to automatically generate URL patterns for respective viewsets.
+Also includes a health check/admin endpoint for monitoring service status."""
+
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from django.http import JsonResponse
-from . import views
 import os
 
 def health_check(request):
@@ -16,5 +20,14 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('health/', health_check),
     path('/', health_check),
-    path("submit_hours/", views.submit_service_hours, name="submit_service_hours"),
+]
+
+router = DefaultRouter()
+from .views import ServiceHourViewSet
+router.register(r'api/servicehours', ServiceHourViewSet, basename='servicehour')
+from .auth_views import GoogleAuthView
+
+urlpatterns += [
+    path('', include(router.urls)),
+    path('api/auth/google/', GoogleAuthView.as_view()),
 ]

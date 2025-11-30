@@ -1,27 +1,38 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+"""Defines the ViewSet for ServiceHour model, including a custom action to confirm service hours."""
+
 from django.utils import timezone
-from django.core.exceptions import PermissionDenied
 
-from .forms import ServiceHourForm
-from .models import StudentProfile, ServiceHour
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from .models import ServiceHour
+from .serializer import ServiceHourSerializer
+from .permissions import IsFacultyOrAdminPermission
 
 
-@login_required
-def submit_service_hours(request):
-    if request.user.role != "student":
-        raise PermissionDenied("Only students can submit service hours.")
+class IsFacultyOrAdmin:
 
-    student_profile = StudentProfile.objects.get(user=request.user)
+    @staticmethod
+    def has_permission(user):
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        return getattr(user, "role", None) in ("faculty", "admin")
 
-    if request.method == "POST":
-        form = ServiceHourForm(request.POST)
-        if form.is_valid():
-            service_hour = form.save(commit=False)
-            service_hour.student = student_profile
-            service_hour.save()
-            return redirect("student_dashboard")
-    else:
-        form = ServiceHourForm()
 
-    return render(request, "submit_hours.html", {"form": form})
+class ServiceHourViewSet(viewsets.ModelViewSet):
+
+    queryset = ServiceHour.objects.all()
+    serializer_class = ServiceHourSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=("post",), url_path="confirm", permission_classes=(IsAuthenticated, IsFacultyOrAdminPermission))
+    def confirm(self, request, pk=None):
+        obj = self.get_object()
+        obj.confirmed_by = request.user
+        obj.confirmed_at = timezone.now()
+        obj.save()
+
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
