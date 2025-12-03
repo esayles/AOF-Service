@@ -1,3 +1,7 @@
+"""This file defines the database schema where a custom User model is created, 
+along with related models forr StudentProfile (one-to-one with User), 
+and ServiceHour entries that reference a student and records who/when it was confirmed."""
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
