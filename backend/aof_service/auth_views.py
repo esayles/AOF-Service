@@ -10,7 +10,6 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 
 from .models import StudentProfile
 
@@ -29,8 +28,13 @@ class GoogleAuthView(APIView):
             return Response({'detail': 'id_token missing'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            from google.auth.transport.requests import Request as GoogleRequest
+        except Exception as exc:
+            return Response({'detail': 'server misconfiguration: google auth transport requires `requests`', 'error': str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
             # Verify the token with Google
-            idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
+            idinfo = id_token.verify_oauth2_token(token, GoogleRequest())
         except Exception as exc:
             return Response({'detail': 'invalid id_token', 'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
