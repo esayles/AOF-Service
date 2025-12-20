@@ -19,15 +19,21 @@ def health_check(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('health/', health_check),
+    path('api/ping/', health_check),
     path('/', health_check),
 ]
 
 router = DefaultRouter()
 from .views import ServiceHourViewSet
 router.register(r'api/servicehours', ServiceHourViewSet, basename='servicehour')
-from .auth_views import GoogleAuthView
+from .auth_views import GoogleAuthView, SignupView, SetPasswordView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns += [
     path('', include(router.urls)),
     path('api/auth/google/', GoogleAuthView.as_view()),
+    path('api/auth/login/', TokenObtainPairView.as_view()),
+    path('api/auth/refresh/', TokenRefreshView.as_view()),
+    path('api/auth/signup/', SignupView.as_view()),
+    path('api/auth/set-password/', SetPasswordView.as_view()),
 ]
