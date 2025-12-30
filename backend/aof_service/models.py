@@ -19,6 +19,18 @@ class User(AbstractUser):
     ]
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=STUDENT)
+    
+    GOOGLE = "google"
+    AUTH_PROVIDER_CHOICES = [
+        (GOOGLE, "Google"),
+    ]
+
+    auth_provider = models.CharField(
+        max_length=20,
+        choices=AUTH_PROVIDER_CHOICES,
+        default=GOOGLE,
+        editable=False,
+    )
 
     def __str__(self):
         return f"{self.username} ({self.role})"
