@@ -26,7 +26,7 @@ urlpatterns = [
 router = DefaultRouter()
 from .views import ServiceHourViewSet
 router.register(r'api/servicehours', ServiceHourViewSet, basename='servicehour')
-from .auth_views import GoogleAuthView, SignupView, SetPasswordView
+from .auth_views import GoogleAuthView, SetPasswordView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns += [
@@ -34,6 +34,5 @@ urlpatterns += [
     path('api/auth/google/', GoogleAuthView.as_view()),
     path('api/auth/login/', TokenObtainPairView.as_view()),
     path('api/auth/refresh/', TokenRefreshView.as_view()),
-    path('api/auth/signup/', SignupView.as_view()),
     path('api/auth/set-password/', SetPasswordView.as_view()),
 ]
