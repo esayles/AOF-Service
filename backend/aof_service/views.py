@@ -6,9 +6,10 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import ServiceHour
-from .serializer import ServiceHourSerializer
+from .models import ServiceHour, StudentProfile
+from .serializer import ServiceHourSerializer, StudentProfileSerializer
 from .permissions import IsFacultyOrAdminPermission
 
 
@@ -35,4 +36,14 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         obj.save()
 
         serializer = self.get_serializer(obj)
+        return Response(serializer.data)
+
+
+class LeaderboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return top student profiles ordered by cached_total_hours."""
+        qs = StudentProfile.objects.order_by("-cached_total_hours")[:10]
+        serializer = StudentProfileSerializer(qs, many=True)
         return Response(serializer.data)

@@ -51,3 +51,16 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             raise ValidationError({"request": "Serializer requires request context with an authenticated user."})
 
         return super().create(validated_data)
+
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    total_hours = serializers.DecimalField(source="cached_total_hours", max_digits=7, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            "username",
+            "year_in_school",
+            "total_hours",
+        ]
