@@ -1,5 +1,5 @@
 import react, { useState } from 'react';
-import Select from 'react-select';
+//import Select from 'react-select';
 
 // Note: this can be changed to howeever you want, this is for Sayles
 
@@ -78,17 +78,6 @@ function ServiceLogForm() {       //dont need this bc it is can be fetched from 
                 />
             </div>
             <br/>
-{/* 
-            <div>
-                <Select
-                    options = {optionsTest}
-                    value = {selectedValue}
-                    onChange = {handleTeacherListChange}
-                    placeholder = "Select Supervising Teacher"
-                    styles = {{width: '200px', fontSize: '16px'}}
-                    isSearchable //Enables search function within dropdown
-                />
-            </div>  */}
             <button type = "submit">Submit Application Info</button>
         </form>   
     );
