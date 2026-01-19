@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from django.test import TestCase
 
@@ -50,3 +51,47 @@ class ServiceHourViewTests(TestCase):
         sh.refresh_from_db()
         self.assertEqual(sh.confirmed_by.pk, self.faculty_user.pk)
         self.assertIsNotNone(sh.confirmed_at)
+
+class LeaderboardViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        # a viewer user to authenticate for leaderboard requests
+        self.viewer = User.objects.create_user(username="viewer", password="pass", email="viewer@example.com")
+
+    def test_leaderboard_ordering_by_total_hours(self):
+        # create three students with different totals: 5, 10, 7
+        u1 = User.objects.create_user(username="stu_a", password="pass", email="a@example.com")
+        p1 = StudentProfile.objects.create(user=u1, year_in_school=StudentProfile.FRESHMAN)
+        ServiceHour.objects.create(student=p1, description="A", hours=Decimal("5.00"), date_performed=date.today())
+
+        u2 = User.objects.create_user(username="stu_b", password="pass", email="b@example.com")
+        p2 = StudentProfile.objects.create(user=u2, year_in_school=StudentProfile.FRESHMAN)
+        ServiceHour.objects.create(student=p2, description="B", hours=Decimal("10.00"), date_performed=date.today())
+
+        u3 = User.objects.create_user(username="stu_c", password="pass", email="c@example.com")
+        p3 = StudentProfile.objects.create(user=u3, year_in_school=StudentProfile.FRESHMAN)
+        ServiceHour.objects.create(student=p3, description="C", hours=Decimal("7.00"), date_performed=date.today())
+
+        self.client.force_authenticate(user=self.viewer)
+        res = self.client.get("/api/leaderboard/")
+        self.assertEqual(res.status_code, 200, res.content)
+
+        usernames = [r["username"] for r in res.data]
+        self.assertEqual(usernames, ["stu_b", "stu_c", "stu_a"])  # 10, 7, 5
+        totals = [r["total_hours"] for r in res.data]
+        self.assertEqual(totals[0], "10.00")
+
+    def test_leaderboard_limits_to_top_10(self):
+        # create 12 students with increasing hours 1..12
+        for i in range(1, 13):
+            u = User.objects.create_user(username=f"stu_{i}", password="pass", email=f"{i}@example.com")
+            p = StudentProfile.objects.create(user=u, year_in_school=StudentProfile.FRESHMAN)
+            ServiceHour.objects.create(student=p, description=f"hours_{i}", hours=Decimal(f"{i}.00"), date_performed=date.today())
+
+        self.client.force_authenticate(user=self.viewer)
+        res = self.client.get("/api/leaderboard/")
+        self.assertEqual(res.status_code, 200, res.content)
+        # should be limited to top 10
+        self.assertEqual(len(res.data), 10)
+        # top should be the student with 12 hours
+        self.assertEqual(res.data[0]["username"], "stu_12")
