@@ -20,7 +20,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('health/', health_check),
     path('api/ping/', health_check),
-    path('/', health_check),
+    path('', health_check),
 ]
 
 router = DefaultRouter()
