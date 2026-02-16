@@ -27,8 +27,7 @@ urlpatterns = [
 
 router = DefaultRouter()
 from .views import ServiceHourViewSet, LeaderboardView
-# Register viewsets without the 'api/' prefix; we'll mount the router under '/api/' below.
-router.register(r'servicehours', ServiceHourViewSet, basename='servicehour')
+router.register(r'service-logs', ServiceHourViewSet, basename='servicelog')
 from .auth_views import GoogleAuthView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -42,6 +41,9 @@ urlpatterns += [
             '/api/servicehours/': ['GET', 'POST'],
             '/api/servicehours/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
             '/api/servicehours/{id}/confirm/': ['POST'],
+            '/api/service-logs/': ['GET', 'POST'],
+            '/api/service-logs/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
+            '/api/service-logs/{id}/confirm/': ['POST'],
             '/api/leaderboard/': ['GET'],
             '/api/auth/google/': ['POST'],
             '/api/auth/login/': ['POST'],
