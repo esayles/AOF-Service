@@ -4,6 +4,8 @@ Also includes a health check/admin endpoint for monitoring service status."""
 
 from django.contrib import admin
 from django.urls import path, include
+from django.views.decorators.http import require_GET
+from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 from django.http import JsonResponse
 import os
@@ -25,12 +27,29 @@ urlpatterns = [
 
 router = DefaultRouter()
 from .views import ServiceHourViewSet, LeaderboardView
-router.register(r'api/servicehours', ServiceHourViewSet, basename='servicehour')
+router.register(r'service-logs', ServiceHourViewSet, basename='servicelog')
 from .auth_views import GoogleAuthView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns += [
-    path('', include(router.urls)),
+    path('api/', include(router.urls)),
+    # API root: a readable listing of available API endpoints and typical HTTP methods.
+    path('api/', require_GET(lambda request: JsonResponse({
+        'endpoints': {
+            '/api/': ['GET'],
+            '/api/ping/': ['GET'],
+            '/api/servicehours/': ['GET', 'POST'],
+            '/api/servicehours/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
+            '/api/servicehours/{id}/confirm/': ['POST'],
+            '/api/service-logs/': ['GET', 'POST'],
+            '/api/service-logs/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
+            '/api/service-logs/{id}/confirm/': ['POST'],
+            '/api/leaderboard/': ['GET'],
+            '/api/auth/google/': ['POST'],
+            '/api/auth/login/': ['POST'],
+            '/api/auth/refresh/': ['POST'],
+        }
+    }))),
     path('api/leaderboard/', LeaderboardView.as_view()),
     path('api/auth/google/', GoogleAuthView.as_view()),
     path('api/auth/login/', TokenObtainPairView.as_view()),
