@@ -38,9 +38,6 @@ urlpatterns += [
         'endpoints': {
             '/api/': ['GET'],
             '/api/ping/': ['GET'],
-            '/api/servicehours/': ['GET', 'POST'],
-            '/api/servicehours/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
-            '/api/servicehours/{id}/confirm/': ['POST'],
             '/api/service-logs/': ['GET', 'POST'],
             '/api/service-logs/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
             '/api/service-logs/{id}/confirm/': ['POST'],
