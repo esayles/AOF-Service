@@ -38,7 +38,6 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
 
-
 class LeaderboardView(APIView):
     permission_classes = [IsAuthenticated]
 
