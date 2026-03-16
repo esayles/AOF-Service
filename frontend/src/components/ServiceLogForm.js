@@ -1,4 +1,4 @@
-import react, { useState } from 'react';
+import React, { useState } from 'react';
 //import Select from 'react-select';
 
 // Note: this can be changed to howeever you want, this is for Sayles
@@ -28,13 +28,13 @@ function ServiceLogForm() {       //dont need this bc it is can be fetched from 
     const handleSubmit = (event) => {
         event.preventDefault(); // Prevent default form submission behavior
         console.log('Submitted Email:', email); // Log the submitted email
-        console.log("Sibmitted Job Description:", jobDescription); // Log the submitted job description
+        console.log("Submitted Job Description:", jobDescription); // Log the submitted job description
         console.log("Submitted Hours Worked: ", hoursWorked); // Log the submitted hours worked
-        console.log("Submitted Teacher: ", selectedOption); // Log the submitted teacher")
+        console.log("Submitted Teacher: ", teacherList); // Log the submitted teacher
         setEmail(''); // Clear the input field after submission
         setJobDescription(''); // Clear job description field after submission
         setHoursWorked(''); // Clear hours worked field after submission
-        setSelectedOption(null); // Clear selected teacher after submission
+        setTeacherList(null); // Clear selected teacher after submission
     };
 
     return (
@@ -55,7 +55,7 @@ function ServiceLogForm() {       //dont need this bc it is can be fetched from 
             <div>
             <label htmlFor = "Short Job Description">Service Activity: </label>
             <input
-                type = "Job "
+                type = "text"
                 id = "Job Description"
                 value = {jobDescription}
                 onChange = {handleJobDescriptionChange}
