@@ -2,6 +2,7 @@
 
 export async function fetchLeaderboard() {
     const response = await fetch('http://localhost:8000/api/leaderboard/');
+    console.log("response:", response);
 
     // Check if the response is unsuccessful
     if(!response.ok) {
@@ -9,8 +10,8 @@ export async function fetchLeaderboard() {
     }
 
     const data = await response.json();
-    const coppy_data = [...data]; // Create a copy of the data to avoid mutating the original array
+    console.log("Fetched leaderboard:", data);
 
-    const sortedStuents = [coppy_data].sort((a, b) => b.hours - a.hours); // Sort by hours in descending order
+    const sortedStuents = [...data].sort((a, b) => b.hours - a.hours); // Sort by hours in descending order
     return sortedStuents
 }
