@@ -1,16 +1,22 @@
 import React from "react";
 import { Navbar, Nav, Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import logo from "../assets/images/logo.png"; // Import the logo image
 
 //first thing I've written whith bootstrap, only makes sense if you're looking at the sintax
 //the "/___" needs to be replaced with the url to the new page. 
 function MenuBar() {
   return (
-    <Navbar bg="dark" variant="dark" expand="lg">
-      <Container>
+    <Navbar bg="light" variant="light" expand="lg">
+      <Container fluid className="px-2">
         {/* makes the brand name a link to the home page, which is the leaderboard */}
         <Navbar.Brand as={Link} to ="/leaderboard">
-        AOF Service
+          <img
+            src={logo}
+            height="40"
+            width="180"
+            style={{objectFit: "contain"}} // Adjust the logo size to fit within the navbar
+          />
         </Navbar.Brand>
 
 {/* Note: the links must be placed in the app.js file, also the files they path to must exist */}
@@ -21,6 +27,6 @@ function MenuBar() {
       </Container>
     </Navbar>
   );
-}
+} 
 
 export default MenuBar;

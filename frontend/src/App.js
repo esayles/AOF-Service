@@ -6,12 +6,14 @@ import Leaderboard from "./components/Leaderboard";
 
 function App() {
   return (
+    // font to be replaced with AOF font
     <div style={{ fontFamily: 'Arial' }}>
       <MenuBar />
 
       <div style={{ padding: '20px' }}>
         <h1>AOF Service</h1>
         <Routes>
+          {/* Note: the "/" route is the default route, since I've made the default page the home page it takes the user there */}
           <Route path="/" element={<Leaderboard />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/log" element={<ServiceLogForm />} />
