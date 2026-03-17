@@ -1,13 +1,28 @@
 import React from "react";
 import {Table, Card, Container} from "react-bootstrap";
+import { fetchLeaderboard } from "../Services/LeaderboardService";
 
 function Leaderboard() {
-    //Temparary fake student data, I don't know how to fetch the data from the backend yet
-    const students = [
-        { id: 1, name: "Luca", hours: 50 },
-        { id: 2, name: "Nick", hours: 40 },
-        { id: 3, name: "Zach", hours: 30 },
-    ];
+    const [students, setStudents] = React.useState([]); 
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState("null"); 
+   
+    React.useEffect(() => {
+        async function loadLeaderboard() {
+            try {
+                const data = await fetchLeaderboard();
+                setStudents(data);
+                setLoading(false);
+            } catch (error) {
+                setError("Failed to fetch leaderboard data");
+                setLoading(false);
+            }
+        }
+        loadLeaderboard();
+    //The empty array makes this effect runs once on component mount, then again when the count changes.
+    //The dependencies can be changed with filters so the leaderboard has live updates... future integration. 
+    }, []); 
+    
 
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 

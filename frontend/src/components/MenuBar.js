@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import logo from "../assets/images/logo.png"; // Import the logo image
 
 //first thing I've written whith bootstrap, only makes sense if you're looking at the sintax
-//the "/___" needs to be replaced with the url to the new page. 
+//the design of the nav bar should change at some point 
 function MenuBar() {
   return (
     <Navbar bg="light" variant="light" expand="lg">
