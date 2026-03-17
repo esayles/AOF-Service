@@ -3,9 +3,9 @@ import {Table, Card, Container} from "react-bootstrap";
 import { fetchLeaderboard } from "../Services/LeaderboardService";
 
 function Leaderboard() {
-    const [students, setStudents] = React.useState([]); 
-    const [loading, setLoading] = React.useState(true);
-    const [error, setError] = React.useState("null"); 
+    const [students, setStudents] = React.useState([]); // State to store the leaderboard data, initialized as an empty array
+    const [loading, setLoading] = React.useState(true); // State to track loading status, initialized as true
+    const [error, setError] = React.useState("null"); // State to store any error messages, initialized as null
    
     React.useEffect(() => {
         async function loadLeaderboard() {
@@ -41,7 +41,7 @@ function Leaderboard() {
                         </thead>
                         <tbody>
                             {/*loops through the student varible and finds the index in the array (location on the leaderboard), 
-                            and the student element as a whole */}
+                            and the student element as a whole. This works because the array is sorted in decending order */}
                             {students.map((student, index) => (
                                 <tr key={student.id}>
                                     <td>{index + 1}</td> {/*index starts at 0 so add one for accurate ranking*/}

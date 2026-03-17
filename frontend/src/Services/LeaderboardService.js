@@ -2,6 +2,7 @@
 
 export async function fetchLeaderboard() {
     const response = await fetch('http://localhost:8000/api/leaderboard/');
+    //debugging 
     console.log("response:", response);
 
     // Check if the response is unsuccessful
@@ -10,6 +11,7 @@ export async function fetchLeaderboard() {
     }
 
     const data = await response.json();
+    //debugging
     console.log("Fetched leaderboard:", data);
 
     const sortedStuents = [...data].sort((a, b) => b.hours - a.hours); // Sort by hours in descending order
