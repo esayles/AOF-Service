@@ -23,6 +23,7 @@ function MenuBar() {
         <Nav className="ms-auto">
           <Nav.Link as={Link} to="/leaderboard">Home</Nav.Link>
           <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>
+          <Nav.Link as={Link} to="/LoginPage">Login</Nav.Link>
         </Nav>
       </Container>
     </Navbar>
