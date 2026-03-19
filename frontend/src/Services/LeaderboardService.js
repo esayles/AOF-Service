@@ -1,7 +1,19 @@
 //file fetches the data from the data base then creates a new array which it then sorts in decending order 
 
 export async function fetchLeaderboard() {
-    const response = await fetch('http://localhost:8000/api/leaderboard/');
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+        throw new Error("No auth token found. Please log in.");
+      }
+
+    const response = await fetch('http://localhost:8000/api/leaderboard/', {
+        method: "GET",
+        headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Token ${token}`,
+    },
+  });
     //debugging 
     console.log("response:", response);
 
