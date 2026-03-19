@@ -30,10 +30,9 @@ function Leaderboard() {
             <Card>
                 <Card.Body>
                     <h2 className= "mb-3">Leaderboard</h2>
-
                     <Table striped bordered hover responsive>
                         <thead>
-                            <tr> {/* defign the rows and the headers for each cell in the row */}
+                            <tr>{/* defign the rows and the headers for each cell in the row */}
                                 <th>Rank</th>
                                 <th>Name</th>
                                 <th>Hours</th>

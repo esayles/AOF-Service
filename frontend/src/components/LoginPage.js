@@ -27,15 +27,20 @@ function LoginPage() {
             cursor: "pointer",
         },
         };
-    const [email, setEmail] = useState("");
-    const navigate = useNavigate();
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    
+    const [email, setEmail] = useState("");// empty use state that will get filled by the user
+    const navigate = useNavigate(); //allows for the page to change after login
+    //this is the function that will be called when the user submits the form 
+    const handleSubmit = (event) => {
+        event.preventDefault();//stops the page from reloading, this isn't HTML
 
+
+    //This is code that will be replaced when the backend logic is implimented 
     console.log("Email submitted:", email);
     navigate("/student-dashboard");
   };
 
+  //this is all standard formatting for the page, the styles is defigned above 
   return (
     <div style={styles.container}>
       <h2>Login</h2>
