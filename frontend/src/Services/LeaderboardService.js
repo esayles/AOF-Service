@@ -7,7 +7,9 @@ export async function fetchLeaderboard() {
 
     // Check if the response is unsuccessful
     if(!response.ok) {
-        throw new Error('Failed to fetch leaderboard data');
+        const errorText = await response.text(); // Get the error message from backend
+        //no idea how this line works VS code auto filled for me, but it works so hey. 
+        throw new Error(`Failed to fetch leaderboard: ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
