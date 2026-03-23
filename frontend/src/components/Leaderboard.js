@@ -54,7 +54,7 @@ function Leaderboard() {
                                 <tr key={student.index}>
                                     <td>{index + 1}</td> {/*index starts at 0 so add one for accurate ranking*/}
                                     <td>{student.username}</td>
-                                    <td>{student.hours}</td>
+                                    <td>{student.total_hours}</td>
                                 </tr>
                             ))}
                         </tbody>
