@@ -90,8 +90,9 @@ REST_FRAMEWORK = {
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    #MAKE SURE TO CHANGE AGAIN WHEN PUBLIC
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60000),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=700),
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
