@@ -19,7 +19,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
 
-user = User.objects.get(email=“campisin27@avonoldfarms.com”)
+user = User.objects.get(email=“YOUR_EMAIL”)
 
 refresh = RefreshToken.for_user(user)
 access_token = refresh.access_token
