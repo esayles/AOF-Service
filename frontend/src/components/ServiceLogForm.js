@@ -41,7 +41,7 @@ function ServiceLogForm() {
                 ></textarea>
             </div>
             <div className="mb-3">
-                <label htmlFor="hoursInput" className="form-label">Hours</label>
+                <label htmlFor="hoursInput" className="form-label">Number of Hours</label>
                 <input 
                     type="number"
                     id="hoursInput"
