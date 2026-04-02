@@ -1,87 +1,77 @@
 import React, { useState } from 'react';
-//import Select from 'react-select';
 
-// Note: this can be changed to howeever you want, this is for Sayles
 
-function ServiceLogForm() {       //dont need this bc it is can be fetched from logged google account.
-    const [email, setEmail] = useState(''); // State to store email input value
-    const [jobDescription, setJobDescription] = useState('');
-    const [hoursWorked, setHoursWorked] = useState('');
-    const [teacherList, setTeacherList] = useState(null);
+function ServiceLogForm() {
+    const [selectedValue, setSelectedValue] = useState('');
+    const [comments, setComments] = useState('');
+    const [hours, setHours] = useState('');
 
-    const handleChange = (event) => {
-        setEmail(event.target.value); // Update state on input change
+    const handleSelectChange = (e) => {
+        setSelectedValue(e.target.value);
     };
 
-    const handleJobDescriptionChange = (event) => {
-        setJobDescription(event.target.value); // Update state on job description input change
+    const handleCommentsChange = (e) => {
+        setComments(e.target.value);
     };
 
-    const handleHoursWorkedChange = (event) => {
-        setHoursWorked(event.target.value); // Update state on hours worked input change
+    const handleHoursChange = (e) => {
+        setHours(e.target.value);
     }
 
-    const handleTeacherListChange = (selectedOption) => {
-        setTeacherList(selectedOption);
-    };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log('Form submitted:', { selectedValue, comments });
 
-    const handleSubmit = (event) => {
-        event.preventDefault(); // Prevent default form submission behavior
-        console.log('Submitted Email:', email); // Log the submitted email
-        console.log("Submitted Job Description:", jobDescription); // Log the submitted job description
-        console.log("Submitted Hours Worked: ", hoursWorked); // Log the submitted hours worked
-        console.log("Submitted Teacher: ", teacherList); // Log the submitted teacher
-        setEmail(''); // Clear the input field after submission
-        setJobDescription(''); // Clear job description field after submission
-        setHoursWorked(''); // Clear hours worked field after submission
-        setTeacherList(null); // Clear selected teacher after submission
+        setSelectedValue('');
+        setComments('');
+        setHours('');
     };
 
     return (
-        <form onSubmit = {handleSubmit}>
-            <div>
-            <label htmlFor = "emailInput">Email: </label>
-            <input 
-                type = "email"
-                id = "emailInput"
-                value={email}
-                onChange={handleChange}
-                placeholder = "Enter your email"
-                style = {{width: '250px', fontSize: '16px'}}
-                required
-            />
+        <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+                <label htmlFor="floatingTextarea" className="form-label">Short Job Description</label>
+                <textarea 
+                    className="form-control" 
+                    id="floatingTextarea" 
+                    placeholder="Leave a comment here"
+                    value={comments}
+                    onChange={handleCommentsChange}
+                    rows="1"
+                ></textarea>
             </div>
-            <br/>
-            <div>
-            <label htmlFor = "Short Job Description">Service Activity: </label>
-            <input
-                type = "text"
-                id = "Job Description"
-                value = {jobDescription}
-                onChange = {handleJobDescriptionChange}
-                placeholder = "Enter a short description of the job"
-                style = {{width: '300px', fontSize: '16px'}}
-                required
-            />
-            </div>
-            <br/>
-            <div>
-                <label htmlFor = "Number of Hours">Hours Worked: </label>
-                <input
-                    type = "number"
-                    id = "hours Worked"
-                    value = {hoursWorked}
-                    onChange = {handleHoursWorkedChange}
-                    placeholder = "Enter number of hours worked"
-                    style = {{width: '250px', fontSize: '16px'}}
-                    required
+            <div className="mb-3">
+                <label htmlFor="hoursInput" className="form-label">Number of Hours</label>
+                <input 
+                    type="number"
+                    id="hoursInput"
+                    className="form-control"
+                    placeholder='Enter Hours (e.g., 1.25)'
+                    value={hours}
+                    onChange={handleHoursChange}
+                    step="0.25"
+                    min="0"
                 />
             </div>
-            <br/>
-            <button type = "submit">Submit Application Info</button>
-        </form>   
-    );
+            <div className="mb-3">
+                <label htmlFor="selectOption" className="form-label">Choose a faculty member to approve this activity</label>
+                <select 
+                    id="selectOption"
+                    className="form-select" 
+                    aria-label="Default select example"
+                    value={selectedValue}
+                    onChange={handleSelectChange}
+                >
+                    <option value="">-- Choose an option --</option>
+                    <option value="1">One</option>
+                    <option value="2">Two</option>
+                    <option value="3">Three</option>
+                </select>
+            </div>
 
+            <button type="submit" className="btn btn-primary">Submit</button>
+        </form>
+    );
 }
 
 export default ServiceLogForm;
