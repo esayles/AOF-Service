@@ -6,7 +6,7 @@
 
 
 
-**activate venv + import_user data**
+**activate venv + import user data**
 
 ```
 
