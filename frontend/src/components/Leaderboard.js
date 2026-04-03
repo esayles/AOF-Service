@@ -24,6 +24,7 @@ function Leaderboard() {
     //The dependencies can be changed with filters so the leaderboard has live updates... future integration. 
     }, []); 
 
+
     //sets custom colors for the rows, makes the top three gold, silver, and bronze respectivly. 
     function getRowStyle(index, isHovered) {
         const base = {
@@ -73,6 +74,15 @@ function Leaderboard() {
       
         return style;
       }
+
+    //loading message for slow connection.
+    if (loading){
+        return <p>loading...</p>;
+    }
+    //red error message if connection failed. 
+    if (error){
+        return <p style={{ color: "red"}}>{error}</p>;
+    }
 
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 
