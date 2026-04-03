@@ -26,7 +26,7 @@ python manage.py shell
 
 ```
 
-**token **
+**token relay**
 
 ```
 
