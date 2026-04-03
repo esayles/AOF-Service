@@ -5,7 +5,7 @@ import { fetchLeaderboard } from "../Services/LeaderboardService";
 function Leaderboard() {
     const [students, setStudents] = React.useState([]); // State to store the leaderboard data, initialized as an empty array
     const [loading, setLoading] = React.useState(true); // State to track loading status, initialized as true
-    const [error, setError] = React.useState("null"); // State to store any error messages, initialized as null
+    const [error, setError] = React.useState(null); // State to store any error messages, initialized as null
    
     React.useEffect(() => {
         async function loadLeaderboard() {
@@ -14,7 +14,7 @@ function Leaderboard() {
                 setStudents(data);
                 setLoading(false);
             } catch (error) {
-                setError("Failed to fetch leaderboard data");
+                setError(error.message);
                 setLoading(false);
             }
         }
@@ -23,6 +23,13 @@ function Leaderboard() {
     //The dependencies can be changed with filters so the leaderboard has live updates... future integration. 
     }, []); 
     
+    // rendering if data can't be loaded, so that there isn't just an empty leaderboard. 
+    if (loading){
+        return <p>loading...</p>;
+    }
+    if (error){
+        return <p style={{ color: "red"}}>{error}</p>;
+    }
 
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 
@@ -32,7 +39,8 @@ function Leaderboard() {
                     <h2 className= "mb-3">Leaderboard</h2>
                     <Table striped bordered hover responsive>
                         <thead>
-                            <tr>{/* defign the rows and the headers for each cell in the row */}
+                            {/* defign the rows and the headers for each cell in the row */}
+                            <tr> 
                                 <th>Rank</th>
                                 <th>Name</th>
                                 <th>Hours</th>
@@ -42,10 +50,10 @@ function Leaderboard() {
                             {/*loops through the student varible and finds the index in the array (location on the leaderboard), 
                             and the student element as a whole. This works because the array is sorted in decending order */}
                             {students.map((student, index) => (
-                                <tr key={student.id}>
+                                <tr key={student.index}>
                                     <td>{index + 1}</td> {/*index starts at 0 so add one for accurate ranking*/}
-                                    <td>{student.name}</td>
-                                    <td>{student.hours}</td>
+                                    <td>{student.username}</td>
+                                    <td>{student.total_hours}</td>
                                 </tr>
                             ))}
                         </tbody>
