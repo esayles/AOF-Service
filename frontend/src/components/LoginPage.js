@@ -30,7 +30,7 @@ function LoginPage() {
 
     try {
       //attempt to send the google id to the back end
-      const response = await fetch("https://aof-service-back.vercel.app", {
+      const response = await fetch("https://aof-service-back.vercel.app/api", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
