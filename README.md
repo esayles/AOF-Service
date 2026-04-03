@@ -31,3 +31,6 @@ access_token = refresh.access_token
 print("ACCESS:", str(access_token))
 
 print("REFRESH:", str(refresh))
+
+
+** if you load your token into local storage, make sure that you name it "access", or else the front end will look for the wrong thing. 
