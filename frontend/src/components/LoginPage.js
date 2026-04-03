@@ -1,66 +1,89 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 
 function LoginPage() {
-    //custom styles for login page, can be changed for furure design. 
-    const styles = {
-        container: {
-            maxWidth: "400px",
-            margin: "60px auto",
-            padding: "20px",
-            textAlign: "center",
-            border: "1px solid #ddd",
-            borderRadius: "8px",
-        },
-        form: {
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-        },
-        input: {
-            padding: "8px",
-            fontSize: "16px",
-        },
-        button: {
-            padding: "10px",
-            fontSize: "16px",
-            cursor: "pointer",
-        },
-        };
-    
-    const [email, setEmail] = useState("");// empty use state that will get filled by the user
-    const navigate = useNavigate(); //allows for the page to change after login
-    //this is the function that will be called when the user submits the form 
-    const handleSubmit = (event) => {
-        event.preventDefault();//stops the page from reloading, this isn't HTML
+  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-
-    //This is code that will be replaced when the backend logic is implimented 
-    console.log("Email submitted:", email);
-    navigate("/student-dashboard");
+  const styles = {
+    container: {
+      maxWidth: "400px",
+      margin: "60px auto",
+      padding: "20px",
+      textAlign: "center",
+      border: "1px solid #ddd",
+      borderRadius: "8px",
+    },
+    message: {
+      marginTop: "12px",
+      color: "red",
+      fontSize: "14px",
+    },
   };
 
-  //this is all standard formatting for the page, the styles is defigned above 
+  console.log(process.env.REACT_APP_GOOGLE_CLIENT_ID);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    setLoading(true);
+  
+
+    try {
+      //attempt to send the google id to the back end
+      const response = await fetch("https://aof-service-back.vercel.app", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        //the body request contains the id token from google
+        body: JSON.stringify({
+          id_token: credentialResponse.credential
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Google login failed");
+      }
+
+      // Adjust these keys if your backend uses different names
+      localStorage.setItem("access", data.access);
+      localStorage.setItem("refresh", data.refresh);
+
+      // Redirect to the leaderboard after successful login
+      navigate("/leaderboard");
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google sign-in was unsuccessful");
+  };
+
+
+  //the actual login page the user interacts with
   return (
     <div style={styles.container}>
       <h2>Login</h2>
+      <p>Sign in with your school Google account</p>
 
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <label>Email</label>
-
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your school email"
-          style={styles.input}
-          required
+      <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+        {/*The call to the google o Auth*/}
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+          prompt="select_account"
         />
+      </div>
 
-        <button type="submit" style={styles.button}>
-          Continue
-        </button>
-      </form>
+      {loading && <p style={{ marginTop: "12px" }}>Signing you in...</p>}
+      {error && <p style={styles.message}>{error}</p>}
     </div>
   );
 }

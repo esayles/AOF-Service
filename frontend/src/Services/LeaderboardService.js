@@ -1,7 +1,7 @@
 //file fetches the data from the data base then creates a new array which it then sorts in decending order 
 
 export async function fetchLeaderboard() {
-    const response = await fetch('http://localhost:8000/api/leaderboard/');
+    const response = await fetch('https://aof-service-back.vercel.app/api/leaderboard');
     //debugging 
     console.log("response:", response);
 
