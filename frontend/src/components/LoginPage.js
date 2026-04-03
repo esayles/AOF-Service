@@ -23,8 +23,6 @@ function LoginPage() {
     },
   };
 
-  console.log(process.env.REACT_APP_GOOGLE_CLIENT_ID);
-
   const handleGoogleSuccess = async (credentialResponse) => {
     setError("");
     setLoading(true);
