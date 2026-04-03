@@ -1,7 +1,7 @@
 import React from "react";
 import { Navbar, Nav, Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import logo from "../assets/images/logo.png"; // Import the logo image
+import logo from "../assets/images/Avon-symbol.png"; // Import the logo image
 
 //first thing I've written whith bootstrap, only makes sense if you're looking at the sintax
 //the design of the nav bar should change at some point 
@@ -23,10 +23,11 @@ function MenuBar() {
         <Nav className="ms-auto">
           <Nav.Link as={Link} to="/leaderboard">Home</Nav.Link>
           <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>
+          <Nav.Link as={Link} to="/LoginPage">Login</Nav.Link>
         </Nav>
       </Container>
     </Navbar>
   );
-} 
+}
 
 export default MenuBar;
