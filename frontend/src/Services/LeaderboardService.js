@@ -7,15 +7,16 @@ export async function fetchLeaderboard() {
       throw new Error("No auth token found. Please log in.");
     }
 
-    const response = await fetch("https://aof-service-back.vercel.app/api/leaderboard/", {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  const response = await fetch('http://localhost:8000/api/leaderboard/', {
+    method: "GET",
+    headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+    },
+  });
+
   //debugging 
   console.log("response:", response);
-  console.log("TOKEN:", localStorage.getItem("access"));
 
   // Check if the response is unsuccessful
   if(!response.ok) {
