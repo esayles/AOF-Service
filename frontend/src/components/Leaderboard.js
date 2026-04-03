@@ -84,6 +84,7 @@ function Leaderboard() {
         return <p style={{ color: "red"}}>{error}</p>;
     }
 
+    console.log("TOKEN:", localStorage.getItem("access"));
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 
         <Container className="mt-4">

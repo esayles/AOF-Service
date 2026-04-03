@@ -9,7 +9,7 @@ export async function fetchLeaderboard() {
       throw new Error("No auth token found. Please log in.");
     }
 
-    const response = await fetch("http://localhost:8000/api/dashboard/", {
+    const response = await fetch("http://localhost:8000/api/leaderboard/", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
@@ -17,6 +17,7 @@ export async function fetchLeaderboard() {
     });
   //debugging 
   console.log("response:", response);
+  console.log("TOKEN:", localStorage.getItem("access"));
 
   // Check if the response is unsuccessful
   if(!response.ok) {
