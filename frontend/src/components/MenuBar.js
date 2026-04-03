@@ -24,6 +24,7 @@ function MenuBar() {
           <Nav.Link as={Link} to="/leaderboard">Home</Nav.Link>
           <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>
           <Nav.Link as={Link} to="/LoginPage">Login</Nav.Link>
+          <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
         </Nav>
       </Container>
     </Navbar>
