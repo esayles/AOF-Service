@@ -3,6 +3,7 @@ import ServiceLogForm from './components/ServiceLogForm';
 import MenuBar from './components/MenuBar';
 import { Routes, Route } from 'react-router-dom';
 import Leaderboard from "./components/Leaderboard";
+import StudentDashboard from './components/StudentDashboard';
 import LoginPage from "./components/LoginPage";
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/" element={<Leaderboard />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/log" element={<ServiceLogForm />} />
+          <Route path="/dashboard" element={<StudentDashboard />} /> 
           <Route path="/LoginPage" element={<LoginPage />} />
         </Routes>
       </div>
