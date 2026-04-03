@@ -91,7 +91,6 @@ function Leaderboard() {
             <Card>
                 <Card.Body>
                     <h2 className= "mb-3">Leaderboard</h2>
-
                     <Table striped bordered hover responsive>
                             {/* defign the rows and the headers for each cell in the row */}
                         <thead>
