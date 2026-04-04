@@ -105,13 +105,13 @@ function Leaderboard() {
                             and the student element as a whole. This works because the array is sorted in decending order */}
                             {/*index starts at 0 so add one for accurate ranking*/}
                             {students.map((student, index) => (
-                                <tr key={student.id ?? `${student.name}-${index}`}
+                                <tr key={student.id ?? `${student.first_name}-${student.last_name}-${index}`}
                                     style={getRowStyle(index, true)}
                                     onMouseEnter={() => setHoveredRow(index)}
                                     onMouseLeave={() => setHoveredRow(null)}
                                 >
                                     <td style={getRowStyle(index, hoveredRow === index)}>{index + 1}</td>
-                                    <td style={getRowStyle(index, hoveredRow === index)}>{student.username}</td>
+                                    <td style={getRowStyle(index, hoveredRow === index)}>{student.first_name} {student.last_name}</td>
                                     <td style={getRowStyle(index, hoveredRow === index)}>{student.total_hours}</td>
                                 </tr>
                             ))}

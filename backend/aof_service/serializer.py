@@ -55,12 +55,16 @@ class ServiceHourSerializer(serializers.ModelSerializer):
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
     total_hours = serializers.DecimalField(source="cached_total_hours", max_digits=7, decimal_places=2, read_only=True)
 
     class Meta:
         model = StudentProfile
         fields = [
             "username",
+            "first_name",
+            "last_name",
             "year_in_school",
             "total_hours",
         ]
