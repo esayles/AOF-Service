@@ -30,7 +30,7 @@ function LoginPage() {
 
     try {
       //attempt to send the google id to the back end
-      const response = await fetch("https://aof-service-back.vercel.app", {
+      const response = await fetch("https://aof-service-back.vercel.app/api/auth/google/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,12 +47,19 @@ function LoginPage() {
         throw new Error(data.detail || "Google login failed");
       }
 
+      if (!data.access || !data.refresh) {
+        throw new Error("Backend did not return tokens correctly");
+      }
+
+      console.log("backend response:", data);
+
       // Adjust these keys if your backend uses different names
       localStorage.setItem("access", data.access);
       localStorage.setItem("refresh", data.refresh);
 
       // Redirect to the leaderboard after successful login
       navigate("/leaderboard");
+
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
