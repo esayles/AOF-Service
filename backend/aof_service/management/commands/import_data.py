@@ -55,9 +55,17 @@ class Command(BaseCommand):
                     email=email,
                     defaults={
                         'username': email,
+                        'first_name': first,
+                        'last_name': last,
                         'role': map_role(roles),
                     }
                 )
+
+                # Update names even for existing users
+                if not user.first_name or not user.last_name:
+                    user.first_name = first
+                    user.last_name = last
+                    user.save()
 
                 if created:
                     created_users += 1
