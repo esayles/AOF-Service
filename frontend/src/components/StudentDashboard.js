@@ -14,7 +14,7 @@ function StudentDashboard() {
                     <div class="p-3"><Leaderboard></Leaderboard></div>
                 </div>
             </div>
-        </div>           
+        </div>
     );
 }
 
