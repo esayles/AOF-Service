@@ -8,8 +8,17 @@ export const getServiceLogs = async () => {
 export const createServiceLog = async (logData) => {
   const response = await fetch(`${API_URL}/api/service-logs/`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(logData),
   });
   return response.json();
 };
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("access");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
+
