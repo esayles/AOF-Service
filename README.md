@@ -1,24 +1,45 @@
 # AOF Service Tracker
 
 
+## Creating a .env file for loading private Google OAuth credentials (SECRET and ID)
 
-**To obtain an access token:**
+**Install dotenv**
+
+```
+source venv/bin/activate
+pip install python-dotenv
+```
+
+**Create a .env file in AOF Service root directory** 
+
+Contents should be:
+```
+GOOGLE_CLIENT_ID=CODE_PROVIDED_UPON_REQUEST
+GOOGLE_CLIENT_SECRET=CODE_PROVIDED_UPON_REQUEST
+```
 
 
 
-**activate venv + import user data**
+
+
+
+## To obtain an access token:
+
+
+
+**Activate venv + import user data**
 
 ```
 
 cd backend
 
-#run the command to activate venv on your machine
+source venv/bin/activate
 
 python manage.py import_data
 
 ```
 
-**activate shell**
+**Activate shell**
 
 ```
 
@@ -26,7 +47,7 @@ python manage.py shell
 
 ```
 
-**token relay**
+**Token relay**
 
 ```
 
@@ -46,4 +67,4 @@ print("ACCESS TOKEN:", str(access_token))
 
 ```
 
-** if you load your token into local storage, make sure that you name it "access", or else the front end will look for the wrong thing. 
+>if you load your token into local storage, make sure that you name it "access", or else the front end will look for the wrong thing. 
