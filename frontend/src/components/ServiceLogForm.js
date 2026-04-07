@@ -1,30 +1,44 @@
 import React, { useState } from 'react';
+import { createServiceLog } from '../API';
 
 
 function ServiceLogForm() {
-    const [selectedValue, setSelectedValue] = useState('');
-    const [comments, setComments] = useState('');
+    const [selectedTeacher, setSelectedTeacher] = useState('');
+    const [description, setDescription] = useState('');
     const [hours, setHours] = useState('');
 
-    const handleSelectChange = (e) => {
-        setSelectedValue(e.target.value);
+    const handleTeacherChange = (e) => {
+        setSelectedTeacher(e.target.value);
     };
 
-    const handleCommentsChange = (e) => {
-        setComments(e.target.value);
+    const handleDescriptionChange = (e) => {
+        setDescription(e.target.value);
     };
 
     const handleHoursChange = (e) => {
         setHours(e.target.value);
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Form submitted:', { selectedValue, comments });
+        const payload = {
+            description: description,
+            hours: parseFloat(hours),
+            date_performed: new Date().toISOString().slice(0, 10), // Format as YYYY-MM-DD
+        };
 
-        setSelectedValue('');
-        setComments('');
+        try {
+            const result = await createServiceLog(payload);
+            console.log('Service log created:', result);
+        } catch (error) {
+            console.error('Error creating service log:', error);
+        }  
+
+        setSelectedTeacher('');
+        setDescription('');
         setHours('');
+
+
     };
 
     return (
@@ -35,8 +49,8 @@ function ServiceLogForm() {
                     className="form-control" 
                     id="floatingTextarea" 
                     placeholder="Leave a comment here"
-                    value={comments}
-                    onChange={handleCommentsChange}
+                    value={description}
+                    onChange={handleDescriptionChange}
                     rows="1"
                 ></textarea>
             </div>
@@ -59,8 +73,8 @@ function ServiceLogForm() {
                     id="selectOption"
                     className="form-select" 
                     aria-label="Default select example"
-                    value={selectedValue}
-                    onChange={handleSelectChange}
+                    value={selectedTeacher}
+                    onChange={handleTeacherChange}
                 >
                     <option value="">-- Choose an option --</option>
                     <option value="1">One</option>
