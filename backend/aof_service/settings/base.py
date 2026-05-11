@@ -13,7 +13,7 @@ if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-change-this')
-
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']

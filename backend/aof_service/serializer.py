@@ -4,12 +4,13 @@
 from datetime import date
 from rest_framework import serializers
 from .models import ServiceHour, StudentProfile
-
+User = get_user_model()
 
 class ServiceHourSerializer(serializers.ModelSerializer):
     student = serializers.PrimaryKeyRelatedField(read_only=True)
     confirmed_by = serializers.PrimaryKeyRelatedField(read_only=True)
     confirmed_at = serializers.DateTimeField(read_only=True)
+    request_verifer = serializers.PrimaryKeyRelatedField(read_only=True, queryset=.objects.filter(row = User.FACULTY))
 
     class Meta:
         model = ServiceHour
@@ -21,6 +22,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             "date_performed",
             "confirmed_by",
             "confirmed_at",
+            "request_verifier",
         ]
 
     def validate_hours(self, value):

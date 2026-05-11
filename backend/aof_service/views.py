@@ -37,6 +37,9 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
+    def sendemail(self, service_hour):
+        verifier = service_hour.request_verifier
+        
 
 class LeaderboardView(APIView):
     permission_classes = [IsAuthenticated]
