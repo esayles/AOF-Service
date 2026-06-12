@@ -11,7 +11,11 @@ class GoogleAuthTests(TestCase):
 
     @patch('aof_service.auth_views.id_token.verify_oauth2_token')
     def test_google_auth_creates_user_and_returns_tokens(self, mock_verify):
-        mock_verify.return_value = {'email': 'student3@example.com', 'sub': '12345'}
+        mock_verify.return_value = {
+            'email': 'student3@example.com',
+            'sub': '12345',
+            'email_verified': True,
+        }
 
         res = self.client.post('/api/auth/google/', {'id_token': 'fake-token'}, format='json')
         self.assertEqual(res.status_code, 200, res.content)
@@ -33,3 +37,21 @@ class GoogleAuthTests(TestCase):
 
         res = self.client.post('/api/auth/google/', {'id_token': 'bad'}, format='json')
         self.assertEqual(res.status_code, 400)
+
+    @patch('aof_service.auth_views.id_token.verify_oauth2_token')
+    def test_api_root_post_with_google_token(self, mock_verify):
+        mock_verify.return_value = {
+            'email': 'student4@example.com',
+            'sub': '12345',
+            'email_verified': True,
+        }
+
+        res = self.client.post('/api/', {'id_token': 'fake-token'}, format='json')
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertIn('access', res.data)
+        self.assertIn('refresh', res.data)
+        self.assertIn('user', res.data)
+
+        user = User.objects.get(email='student4@example.com')
+        self.assertIsNotNone(user)
+        self.assertTrue(hasattr(user, 'student_profile'))
