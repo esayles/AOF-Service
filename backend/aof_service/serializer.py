@@ -1,16 +1,25 @@
-"""Converts intances of ServiceHour to and from JSON representations 
-(to be inmplemented in the frontend with POST/GET requests)."""
+"""Converts instances of ServiceHour to and from JSON representations
+(used by the frontend with POST/GET requests)."""
 
 from datetime import date
+
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
+
 from .models import ServiceHour, StudentProfile
+
 User = get_user_model()
+
 
 class ServiceHourSerializer(serializers.ModelSerializer):
     student = serializers.PrimaryKeyRelatedField(read_only=True)
     confirmed_by = serializers.PrimaryKeyRelatedField(read_only=True)
     confirmed_at = serializers.DateTimeField(read_only=True)
-    request_verifer = serializers.PrimaryKeyRelatedField(read_only=True, queryset=.objects.filter(row = User.FACULTY))
+    request_verifier = serializers.PrimaryKeyRelatedField(
+        required=False,
+        allow_null=True,
+        queryset=User.objects.filter(role__in=(User.FACULTY, User.ADMIN)),
+    )
 
     class Meta:
         model = ServiceHour
@@ -42,15 +51,13 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             if hasattr(user, "student_profile") and user.student_profile is not None:
                 validated_data["student"] = user.student_profile
             else:
-                from rest_framework.exceptions import ValidationError
-
-                raise ValidationError({
+                raise serializers.ValidationError({
                     "student": "Unable to determine student — ensure the authenticated user has a StudentProfile."
                 })
         else:
-            from rest_framework.exceptions import ValidationError
-
-            raise ValidationError({"request": "Serializer requires request context with an authenticated user."})
+            raise serializers.ValidationError({
+                "request": "Serializer requires request context with an authenticated user."
+            })
 
         return super().create(validated_data)
 
@@ -70,3 +77,11 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "year_in_school",
             "total_hours",
         ]
+
+
+class FacultySerializer(serializers.ModelSerializer):
+    """Minimal listing of faculty/admin users so students can pick a verifier."""
+
+    class Meta:
+        model = User
+        fields = ["id", "first_name", "last_name"]

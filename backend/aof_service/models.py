@@ -69,12 +69,6 @@ class StudentProfile(models.Model):
         total = self.service_hours.aggregate(total=Sum("hours"))["total"]
         return total if total is not None else Decimal("0.00")
 
-    @property
-    def total_hours(self):
-
-        total = self.service_hours.aggregate(total=Sum("hours"))["total"]
-        return total if total is not None else Decimal("0.00")
-
 
 class ServiceHour(models.Model):
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="service_hours")
@@ -83,6 +77,15 @@ class ServiceHour(models.Model):
     confirmed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, limit_choices_to={"role": "faculty"})
     confirmed_at = models.DateTimeField(null=True, blank=True)
     date_performed = models.DateField()
+    request_verifier = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="verification_requests",
+        limit_choices_to={"role__in": ("faculty", "admin")},
+        help_text="Faculty member the student asked to verify these hours.",
+    )
 
     def __str__(self):
         return f"{self.student.user.username}: {self.hours} hours"

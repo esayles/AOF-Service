@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
-import { createServiceLog } from '../API';
+import React, { useEffect, useState } from 'react';
+import { createServiceLog, getFaculty } from '../API';
 
 
 function ServiceLogForm() {
     const [selectedTeacher, setSelectedTeacher] = useState('');
     const [description, setDescription] = useState('');
     const [hours, setHours] = useState('');
+    const [faculty, setFaculty] = useState([]);
+
+    useEffect(() => {
+        getFaculty()
+            .then((data) => setFaculty(Array.isArray(data) ? data : []))
+            .catch((error) => console.error('Error loading faculty list:', error));
+    }, []);
 
     const handleTeacherChange = (e) => {
         setSelectedTeacher(e.target.value);
@@ -25,6 +32,7 @@ function ServiceLogForm() {
             description: description,
             hours: parseFloat(hours),
             date_performed: new Date().toISOString().slice(0, 10), // Format as YYYY-MM-DD
+            ...(selectedTeacher ? { request_verifier: parseInt(selectedTeacher, 10) } : {}),
         };
 
         try {
@@ -77,9 +85,11 @@ function ServiceLogForm() {
                     onChange={handleTeacherChange}
                 >
                     <option value="">-- Choose an option --</option>
-                    <option value="1">One</option>
-                    <option value="2">Two</option>
-                    <option value="3">Three</option>
+                    {faculty.map((f) => (
+                        <option key={f.id} value={f.id}>
+                            {f.last_name}, {f.first_name}
+                        </option>
+                    ))}
                 </select>
             </div>
 

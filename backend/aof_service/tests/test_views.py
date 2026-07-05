@@ -28,7 +28,7 @@ class ServiceHourViewTests(TestCase):
             "date_performed": date.today().isoformat(),
         }
 
-        res = self.client.post("/api/servicehours/", payload, format='json')
+        res = self.client.post("/api/service-logs/", payload, format='json')
         self.assertEqual(res.status_code, 201, res.content)
         # response should include 'student' which is the profile id
         self.assertEqual(int(res.data["student"]), self.student_profile.pk)
@@ -38,14 +38,14 @@ class ServiceHourViewTests(TestCase):
         sh = ServiceHour.objects.create(student=self.student_profile, description="Test", hours=1.0, date_performed=date.today())
 
         self.client.force_authenticate(user=self.student_user)
-        res = self.client.post(f"/api/servicehours/{sh.pk}/confirm/")
+        res = self.client.post(f"/api/service-logs/{sh.pk}/confirm/")
         self.assertEqual(res.status_code, 403)
 
     def test_faculty_can_confirm_servicehour(self):
         sh = ServiceHour.objects.create(student=self.student_profile, description="Test 2", hours=2.0, date_performed=date.today())
 
         self.client.force_authenticate(user=self.faculty_user)
-        res = self.client.post(f"/api/servicehours/{sh.pk}/confirm/")
+        res = self.client.post(f"/api/service-logs/{sh.pk}/confirm/")
         self.assertEqual(res.status_code, 200, res.content)
 
         sh.refresh_from_db()

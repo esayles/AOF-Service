@@ -1,7 +1,16 @@
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export const getServiceLogs = async () => {
-  const response = await fetch(`${API_URL}/api/service-logs/`);
+  const response = await fetch(`${API_URL}/api/service-logs/`, {
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+};
+
+export const getFaculty = async () => {
+  const response = await fetch(`${API_URL}/api/faculty/`, {
+    headers: getAuthHeaders(),
+  });
   return response.json();
 };
 
