@@ -27,7 +27,9 @@ CORS_ALLOWED_ORIGINS = [
     os.environ.get('PRODUCTION_FRONTEND_URL', 'https://d1c725l9c1x9og.cloudfront.net'),
 ]
 
-SECURE_SSL_REDIRECT = True
+# Django's test client uses plain HTTP; redirecting it to HTTPS turns every
+# test response into a 301, so disable the redirect under `manage.py test`.
+SECURE_SSL_REDIRECT = 'test' not in sys.argv
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
