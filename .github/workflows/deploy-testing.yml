@@ -31,6 +31,9 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: aof_service.settings.testing
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          # Dummy values: settings require these at import time; tests never call Google
+          GOOGLE_CLIENT_ID: ci-test-only
+          GOOGLE_CLIENT_SECRET: ci-test-only
 
   test-frontend:
     runs-on: ubuntu-latest
