@@ -87,6 +87,7 @@ jobs:
           npm run build
         env:
           REACT_APP_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
