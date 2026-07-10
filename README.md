@@ -1,5 +1,6 @@
 # AOF Service Tracker
 
+we should update this readme
 
 ## Creating .env files for loading private Google OAuth credentials (SECRET and ID)
 
