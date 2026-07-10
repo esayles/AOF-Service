@@ -30,7 +30,10 @@ CORS_ALLOWED_ORIGINS = [
 # Django's test client uses plain HTTP; redirecting it to HTTPS turns every
 # test response into a 301, so disable the redirect under `manage.py test`.
 SECURE_SSL_REDIRECT = 'test' not in sys.argv
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Production traffic arrives via CloudFront (HTTPS from the viewer, HTTP to
+# EB). CloudFront reports the viewer's scheme in this header; trusting it
+# prevents an infinite redirect loop with SECURE_SSL_REDIRECT.
+SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 CSRF_TRUSTED_ORIGINS = [
