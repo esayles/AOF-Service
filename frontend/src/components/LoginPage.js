@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
+import { API_URL } from "../API";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ function LoginPage() {
 
     try {
       //attempt to send the google id to the back end
-      const response = await fetch("https://aof-service-back.vercel.app/api/auth/google/", {
+      const response = await fetch(`${API_URL}/api/auth/google/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
