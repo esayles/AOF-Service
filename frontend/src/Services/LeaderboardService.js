@@ -1,4 +1,6 @@
-//file fetches the data from the data base then creates a new array which it then sorts in decending order 
+//file fetches the data from the data base then creates a new array which it then sorts in decending order
+
+import { API_URL } from "../API";
 
 export async function fetchLeaderboard() {
   const token = localStorage.getItem("access");
@@ -7,7 +9,7 @@ export async function fetchLeaderboard() {
       throw new Error("No auth token found. Please log in.");
     }
 
-  const response = await fetch('http://localhost:8000/api/leaderboard/', {
+  const response = await fetch(`${API_URL}/api/leaderboard/`, {
     method: "GET",
     headers: {
     "Content-Type": "application/json",
