@@ -2,7 +2,11 @@ from .base import *
 import sys
 
 DEBUG = False
-ALLOWED_HOSTS = [os.environ.get('PRODUCTION_DOMAIN', '.elasticbeanstalk.com'), '.cloudfront.net']
+# Accept the EB origin, CloudFront, and the custom production domain. An extra
+# host can still be added via the PRODUCTION_DOMAIN env var if needed.
+ALLOWED_HOSTS = ['.elasticbeanstalk.com', '.cloudfront.net', 'service.avonoldfarms.com']
+if os.environ.get('PRODUCTION_DOMAIN'):
+    ALLOWED_HOSTS.append(os.environ['PRODUCTION_DOMAIN'])
 
 if 'test' in sys.argv:
     DATABASES = {
