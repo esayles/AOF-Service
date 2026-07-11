@@ -1,4 +1,6 @@
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Strip any trailing slash so `${API_URL}/api/...` never produces a double
+// slash (a double slash triggers a 308 redirect that drops CORS headers).
+export const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
 
 export const getServiceLogs = async () => {
   const response = await fetch(`${API_URL}/api/service-logs/`, {
