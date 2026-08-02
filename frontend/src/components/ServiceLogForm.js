@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { createServiceLog, getFaculty } from '../API';
 
 
-function ServiceLogForm() {
+function ServiceLogForm({ onSubmissionSuccess }) {
     const [selectedTeacher, setSelectedTeacher] = useState('');
     const [description, setDescription] = useState('');
     const [hours, setHours] = useState('');
     const [faculty, setFaculty] = useState([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [feedback, setFeedback] = useState({ type: '', message: '' });
 
     useEffect(() => {
         getFaculty()
@@ -28,25 +30,37 @@ function ServiceLogForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFeedback({ type: '', message: '' });
+
+        if (!description.trim() || !hours) {
+            setFeedback({ type: 'error', message: 'Please add a description and hours before submitting.' });
+            return;
+        }
+
         const payload = {
-            description: description,
+            description: description.trim(),
             hours: parseFloat(hours),
-            date_performed: new Date().toISOString().slice(0, 10), // Format as YYYY-MM-DD
+            date_performed: new Date().toISOString().slice(0, 10),
             ...(selectedTeacher ? { request_verifier: parseInt(selectedTeacher, 10) } : {}),
         };
 
+        setIsSubmitting(true);
+
         try {
             const result = await createServiceLog(payload);
-            console.log('Service log created:', result);
+            setFeedback({ type: 'success', message: 'Your service hours were submitted successfully.' });
+            setSelectedTeacher('');
+            setDescription('');
+            setHours('');
+            if (onSubmissionSuccess) {
+                onSubmissionSuccess(result);
+            }
+        // Handle any errors that occur during the submission
         } catch (error) {
-            console.error('Error creating service log:', error);
-        }  
-
-        setSelectedTeacher('');
-        setDescription('');
-        setHours('');
-
-
+            setFeedback({ type: 'error', message: error.message || 'Something went wrong while submitting your hours.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -93,7 +107,17 @@ function ServiceLogForm() {
                 </select>
             </div>
 
-            <button type="submit" className="btn btn-primary">Submit</button>
+            
+            // Display feedback messages based on the submission result
+            {feedback.message ? (
+                <div className={`alert ${feedback.type === 'error' ? 'alert-danger' : 'alert-success'}`} role="alert">
+                    {feedback.message}
+                </div>
+            ) : null}
+
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+            </button>
         </form>
     );
 }
