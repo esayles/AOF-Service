@@ -1,3 +1,5 @@
+import { getAccessToken } from './auth/auth';
+
 // Strip any trailing slash so `${API_URL}/api/...` never produces a double
 // slash (a double slash triggers a 308 redirect that drops CORS headers).
 export const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
@@ -26,7 +28,7 @@ export const createServiceLog = async (logData) => {
 };
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem("access");
+  const token = getAccessToken();
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
