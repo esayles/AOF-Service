@@ -1,76 +1,104 @@
+
 # AOF Service Tracker
 
+## Setup
 
-## Creating .env files for loading private Google OAuth credentials (SECRET and ID)
+### 1. Environment Variables
 
-**Install dotenv**
+Install dotenv for managing private credentials:
 
-```
+```bash
 source venv/bin/activate
 pip install python-dotenv
 ```
 
-**Create a .env file in AOF Service root directory** 
+#### Backend Configuration
 
-Contents:
+Create a `.env` file in the AOF Service root directory with your Google OAuth credentials:
+
 ```
 GOOGLE_CLIENT_ID=code_provided_upon_request
 GOOGLE_CLIENT_SECRET=code_provided_upon_request
 ```
 
-**Create another .env file in AOF-Service/frontend** 
+#### Frontend Configuration
 
-Contents:
-```
-REACT_APP_GOOGLE_CLIENT_ID=code_provided_upon_request (same as one as GOOGLE_CLIENT_ID)
-```
-
-
-
-
-
-## To obtain an access token:
-
-
-
-**Activate venv + import user data**
+Create a `.env` file in `AOF-Service/frontend`:
 
 ```
+REACT_APP_GOOGLE_CLIENT_ID=code_provided_upon_request
+```
 
+> **Note:** Use the same value as `GOOGLE_CLIENT_ID` from the backend
+
+---
+
+## Backend Setup
+
+```bash
 cd backend
 
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run migrations
+python manage.py migrate
+
+# Start server
+python manage.py runserver 
+```
+
+## Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+```
+
+---
+
+## Authentication
+
+### Getting an Access Token
+
+#### 1. Import User Data
+
+```bash
+cd backend
 source venv/bin/activate
-
 python manage.py import_data
-
 ```
 
-**Activate shell**
+#### 2. Open Django Shell
 
-```
-
+```bash
 python manage.py shell
-
 ```
 
-**Token relay**
+#### 3. Generate Token
 
-```
-
+```python
 from django.contrib.auth import get_user_model
-
 from rest_framework_simplejwt.tokens import RefreshToken
 
 User = get_user_model()
-
-user = User.objects.get(email="YOUR AOF EMAIL")
+user = User.objects.get(email="YOUR_AOF_EMAIL")
 
 refresh = RefreshToken.for_user(user)
-
 access_token = refresh.access_token
 
 print("ACCESS TOKEN:", str(access_token))
-
 ```
 
->if you load your token into local storage, make sure that you name it "access" 
+#### 4. Store Token Locally
+
+Save the access token to local storage with the key name `"access"`.
