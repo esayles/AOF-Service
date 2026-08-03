@@ -107,8 +107,6 @@ function ServiceLogForm({ onSubmissionSuccess }) {
                 </select>
             </div>
 
-            
-            // Display feedback messages based on the submission result
             {feedback.message ? (
                 <div className={`alert ${feedback.type === 'error' ? 'alert-danger' : 'alert-success'}`} role="alert">
                     {feedback.message}

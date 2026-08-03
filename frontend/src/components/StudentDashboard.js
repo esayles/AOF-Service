@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Leaderboard from './Leaderboard';
 import ServiceLogForm from './ServiceLogForm';
-import { getServiceLogs } from '../API';
+import { getMyServiceLogs } from '../API';
 import { getStudentSummary } from './dashboardUtils';
 
 function StudentDashboard() {
@@ -14,7 +14,7 @@ function StudentDashboard() {
     const loadServiceLogs = async () => {
         try {
             setLoading(true);
-            const data = await getServiceLogs();
+            const data = await getMyServiceLogs();
             setServiceLogs(Array.isArray(data) ? data : []);
             setError('');
         } catch (err) {

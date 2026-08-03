@@ -34,6 +34,7 @@ function MenuBar() {
           <Nav.Link as={Link} to="/leaderboard">Home</Nav.Link>
           <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>
           <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
+          <Nav.Link as={Link} to="/profile">Profile</Nav.Link>
           {authenticated ? (
             <Nav.Link as="button" onClick={handleLogout}>Logout</Nav.Link>
           ) : (

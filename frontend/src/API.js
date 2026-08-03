@@ -10,6 +10,13 @@ export const getServiceLogs = async () => {
   });
   return response.json();
 };
+// Fetches the list of faculty members from the backend API. This function is used to populate the dropdown in the service log form, allowing students to select a teacher for verification.
+export const getMyServiceLogs = async () => {
+  const response = await fetch(`${API_URL}/api/service-logs/mine/`, {
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+};
 
 export const getFaculty = async () => {
   const response = await fetch(`${API_URL}/api/faculty/`, {
