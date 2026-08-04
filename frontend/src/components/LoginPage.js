@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { API_URL } from "../API";
+import { setAuthTokens } from "../auth/auth";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -48,9 +49,7 @@ function LoginPage() {
         throw new Error(data.detail || "Google login failed");
       }
 
-      // Adjust these keys if your backend uses different names
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
+      setAuthTokens({ access: data.access, refresh: data.refresh });
 
       // Redirect to the leaderboard after successful login
       navigate("/leaderboard");

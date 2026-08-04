@@ -1,7 +1,8 @@
 from datetime import date
 from decimal import Decimal
 
-from django.test import TestCase
+from django.core import mail
+from django.test import TestCase, override_settings
 
 from rest_framework.test import APIClient
 
@@ -32,6 +33,25 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(res.status_code, 201, res.content)
         # response should include 'student' which is the profile id
         self.assertEqual(int(res.data["student"]), self.student_profile.pk)
+
+    #Tests that: user is student, creates a service hour with a requested verifier, and checks that a verification email is sent to the faculty member. The test uses Django's locmem email backend to capture the email in memory for assertions.
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_student_create_with_verifier_sends_verification_email(self):
+        self.client.force_authenticate(user=self.student_user)
+
+        payload = {
+            "description": "Volunteer shift",
+            "hours": "3.00",
+            "date_performed": date.today().isoformat(),
+            "request_verifier": self.faculty_user.pk,
+        }
+
+        res = self.client.post("/api/service-logs/", payload, format='json')
+        self.assertEqual(res.status_code, 201, res.content)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.faculty_user.email])
+        self.assertIn("verification request", mail.outbox[0].subject.lower())
+        self.assertIn("Volunteer shift", mail.outbox[0].body)
 
     def test_student_cannot_confirm_servicehour(self):
         # create a servicehour with the student

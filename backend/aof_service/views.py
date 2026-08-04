@@ -48,6 +48,14 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
+    
+    # A method that allows students to retrieve their own service logs. This is a custom action that can be accessed at /api/service-logs/mine/.
+    # Used for the profile tab in the app.
+    @action(detail=False, methods=("get",), url_path="mine")
+    def mine(self, request):
+        queryset = self.get_queryset().filter(student__user=request.user)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class LeaderboardView(APIView):
