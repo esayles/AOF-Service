@@ -5,6 +5,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Leaderboard from "./components/Leaderboard";
 import StudentDashboard from './components/StudentDashboard';
 import ProfilePage from './components/ProfilePage';
+import FacultyApprovalPage from './components/FacultyApprovalPage';
 import LoginPage from "./components/LoginPage";
 import { isAuthenticated } from './auth/auth';
 
@@ -29,6 +30,7 @@ function App() {
           <Route path="/log" element={<ProtectedRoute><ServiceLogForm /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/faculty-approval" element={<ProtectedRoute><FacultyApprovalPage /></ProtectedRoute>} />
           <Route path="/LoginPage" element={<LoginPage />} />
         </Routes>
       </div>

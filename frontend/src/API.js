@@ -33,6 +33,21 @@ export const createServiceLog = async (logData) => {
   });
   return response.json();
 };
+// Approves a service log by sending a POST request to the backend API. This function is used in the faculty approval page to approve student submissions.
+export const approveServiceLog = async (id) => {
+  const response = await fetch(`${API_URL}/api/service-logs/${id}/confirm/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  // If the response is not OK, attempt to parse the error message. If fail, return a generic error message.
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Unable to approve this submission.');
+  }
+
+  return response.json();
+};
 
 const getAuthHeaders = () => {
   const token = getAccessToken();
