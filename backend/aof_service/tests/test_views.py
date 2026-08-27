@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 
 from rest_framework.test import APIClient
@@ -33,6 +34,21 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(res.status_code, 201, res.content)
         # response should include 'student' which is the profile id
         self.assertEqual(int(res.data["student"]), self.student_profile.pk)
+
+    def test_student_cannot_choose_another_student_when_creating_a_log(self):
+        other_user = User.objects.create_user(username="student3", password="pass", email="s3@example.com")
+        other_profile = StudentProfile.objects.create(user=other_user)
+        self.client.force_authenticate(user=self.student_user)
+
+        res = self.client.post("/api/service-logs/", {
+            "student": other_profile.pk,
+            "description": "Attempt to alter another student",
+            "hours": "1.00",
+            "date_performed": date.today().isoformat(),
+        }, format="json")
+
+        self.assertEqual(res.status_code, 400, res.content)
+        self.assertIn("student", res.data)
 
     #Tests that: user is student, creates a service hour with a requested verifier, and checks that a verification email is sent to the faculty member. The test uses Django's locmem email backend to capture the email in memory for assertions.
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
@@ -71,6 +87,70 @@ class ServiceHourViewTests(TestCase):
         sh.refresh_from_db()
         self.assertEqual(sh.confirmed_by.pk, self.faculty_user.pk)
         self.assertIsNotNone(sh.confirmed_at)
+
+    def test_faculty_can_add_confirmed_hours_for_a_student(self):
+        self.client.force_authenticate(user=self.faculty_user)
+
+        res = self.client.post("/api/service-logs/", {
+            "student": self.student_profile.pk,
+            "description": "Faculty-recorded event",
+            "hours": "2.50",
+            "date_performed": date.today().isoformat(),
+        }, format="json")
+
+        self.assertEqual(res.status_code, 201, res.content)
+        service_hour = ServiceHour.objects.get(pk=res.data["id"])
+        self.assertEqual(service_hour.student, self.student_profile)
+        self.assertEqual(service_hour.confirmed_by, self.faculty_user)
+        self.assertIsNotNone(service_hour.confirmed_at)
+
+    def test_faculty_can_edit_a_student_service_log(self):
+        service_hour = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Original description",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+        )
+        self.client.force_authenticate(user=self.faculty_user)
+
+        res = self.client.patch(
+            f"/api/service-logs/{service_hour.pk}/",
+            {"description": "Corrected description", "hours": "1.50"},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 200, res.content)
+        service_hour.refresh_from_db()
+        self.assertEqual(service_hour.description, "Corrected description")
+        self.assertEqual(service_hour.hours, Decimal("1.50"))
+
+    def test_student_cannot_edit_confirmed_service_hours(self):
+        service_hour = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Confirmed entry",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            confirmed_by=self.faculty_user,
+        )
+        self.client.force_authenticate(user=self.student_user)
+
+        res = self.client.patch(
+            f"/api/service-logs/{service_hour.pk}/",
+            {"hours": "2.00"},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 403, res.content)
+
+    def test_students_list_is_staff_only(self):
+        self.client.force_authenticate(user=self.student_user)
+        self.assertEqual(self.client.get("/api/students/").status_code, 403)
+
+        self.client.force_authenticate(user=self.faculty_user)
+        res = self.client.get("/api/students/")
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.data[0]["id"], self.student_profile.pk)
+        self.assertEqual(res.data[0]["email"], self.student_user.email)
 
 class LeaderboardViewTests(TestCase):
     def setUp(self):
@@ -115,3 +195,129 @@ class LeaderboardViewTests(TestCase):
         self.assertEqual(len(res.data), 10)
         # top should be the student with 12 hours
         self.assertEqual(res.data[0]["username"], "stu_12")
+
+
+class AdminUserManagementTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_user(
+            username="admin-user",
+            password="pass",
+            email="admin@example.com",
+            role=User.ADMIN,
+        )
+        self.student = User.objects.create_user(
+            username="student-user",
+            password="pass",
+            email="student@example.com",
+            role=User.STUDENT,
+        )
+
+    def upload_csv(self, content):
+        return self.client.post(
+            "/api/admin/users/import/",
+            {"file": SimpleUploadedFile("users_import.csv", content.encode("utf-8"), content_type="text/csv")},
+            format="multipart",
+        )
+
+    def test_only_admins_can_list_or_import_users(self):
+        self.client.force_authenticate(user=self.student)
+        self.assertEqual(self.client.get("/api/admin/users/").status_code, 403)
+        self.assertEqual(self.upload_csv("First Name,Last Name,Email 1,Roles\nNew,User,new@example.com,Student\n").status_code, 403)
+
+    def test_admin_can_import_and_update_users_from_school_csv(self):
+        existing = User.objects.create_user(
+            username="existing@example.com",
+            password="pass",
+            email="existing@example.com",
+            first_name="Old",
+            last_name="Name",
+            role=User.STUDENT,
+        )
+        self.client.force_authenticate(user=self.admin)
+        csv_content = (
+            "Person ID,Full Name,First Name,Preferred Name,Last Name,Email 1,Roles\n"
+            '1,"New, Student",New,,Student,new@example.com,"Student (11-D)"\n'
+            '2,"Faculty, Member",Faculty,,Member,faculty@example.com,Staff\n'
+            '3,"Existing, Updated",Existing,,Updated,existing@example.com,Staff\n'
+        )
+
+        res = self.upload_csv(csv_content)
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.data["created"], 2)
+        self.assertEqual(res.data["updated"], 1)
+        self.assertEqual(res.data["total_processed"], 3)
+        new_student = User.objects.get(email="new@example.com")
+        self.assertEqual(new_student.role, User.STUDENT)
+        self.assertTrue(StudentProfile.objects.filter(user=new_student).exists())
+        self.assertEqual(User.objects.get(email="faculty@example.com").role, User.FACULTY)
+        existing.refresh_from_db()
+        self.assertEqual(existing.last_name, "Updated")
+        self.assertEqual(existing.role, User.FACULTY)
+
+        list_response = self.client.get("/api/admin/users/")
+        self.assertEqual(list_response.status_code, 200, list_response.content)
+        self.assertIn("new@example.com", [user["email"] for user in list_response.data])
+
+    def test_import_does_not_demote_an_existing_admin(self):
+        self.client.force_authenticate(user=self.admin)
+        csv_content = (
+            "First Name,Last Name,Email 1,Roles\n"
+            "Admin,User,admin@example.com,Student (12-B)\n"
+        )
+
+        res = self.upload_csv(csv_content)
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.admin.refresh_from_db()
+        self.assertEqual(self.admin.role, User.ADMIN)
+
+    def test_admin_can_change_another_users_role_and_remove_them(self):
+        target = User.objects.create_user(
+            username="target-user",
+            password="pass",
+            email="target@example.com",
+            role=User.STUDENT,
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        update_res = self.client.patch(
+            f"/api/admin/users/{target.pk}/",
+            {"role": User.FACULTY},
+            format="json",
+        )
+
+        self.assertEqual(update_res.status_code, 200, update_res.content)
+        target.refresh_from_db()
+        self.assertEqual(target.role, User.FACULTY)
+
+        delete_res = self.client.delete(f"/api/admin/users/{target.pk}/")
+        self.assertEqual(delete_res.status_code, 204, delete_res.content)
+        self.assertFalse(User.objects.filter(pk=target.pk).exists())
+
+    def test_admin_cannot_delete_or_demote_their_own_account(self):
+        self.client.force_authenticate(user=self.admin)
+
+        self.assertEqual(
+            self.client.patch(
+                f"/api/admin/users/{self.admin.pk}/",
+                {"role": User.FACULTY},
+                format="json",
+            ).status_code,
+            403,
+        )
+        self.assertEqual(self.client.delete(f"/api/admin/users/{self.admin.pk}/").status_code, 403)
+
+    def test_invalid_csv_does_not_import_a_partial_set_of_users(self):
+        self.client.force_authenticate(user=self.admin)
+        csv_content = (
+            "First Name,Last Name,Email 1,Roles\n"
+            "Valid,Person,valid@example.com,Student\n"
+            "Bad,Address,not-an-email,Staff\n"
+        )
+
+        res = self.upload_csv(csv_content)
+
+        self.assertEqual(res.status_code, 400, res.content)
+        self.assertFalse(User.objects.filter(email="valid@example.com").exists())

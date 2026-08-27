@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createServiceLog, getFaculty } from '../API';
 
 
-function ServiceLogForm({ onSubmissionSuccess }) {
+function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
     const [selectedTeacher, setSelectedTeacher] = useState('');
     const [description, setDescription] = useState('');
     const [hours, setHours] = useState('');
@@ -64,7 +64,13 @@ function ServiceLogForm({ onSubmissionSuccess }) {
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form className="section-card service-log-form" onSubmit={handleSubmit}>
+            {showHeading && (
+                <>
+                    <p className="page-eyebrow">New submission</p>
+                    <h2 className="page-heading mb-3">Log Service Hours</h2>
+                </>
+            )}
             <div className="mb-3">
                 <label htmlFor="floatingTextarea" className="form-label">Short Job Description</label>
                 <textarea 
@@ -86,7 +92,7 @@ function ServiceLogForm({ onSubmissionSuccess }) {
                     value={hours}
                     onChange={handleHoursChange}
                     step="0.25"
-                    min="0"
+                    min="0.25"
                 />
             </div>
             <div className="mb-3">

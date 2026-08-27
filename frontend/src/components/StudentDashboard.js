@@ -33,11 +33,12 @@ function StudentDashboard() {
     
 // Render the student dashboard, including the overview of service logs, the form for submitting new logs, and the leaderboard.
     return (
-        <div className="container overflow-hidden">
+        <div className="portal-page container px-0 overflow-hidden">
             <div className="row gy-4">
                 <div className="col-lg-5">
-                    <div className="p-3 border rounded bg-light">
-                        <h3 className="mb-3">Student Overview</h3>
+                    <div className="portal-surface h-100">
+                        <p className="page-eyebrow">Student portal</p>
+                        <h3 className="page-heading mb-3">Student Overview</h3>
                         {loading ? (
                             <p>Loading your activity...</p>
                         ) : error ? (
@@ -46,19 +47,19 @@ function StudentDashboard() {
                             <>
                                 <div className="row g-3 mb-3">
                                     <div className="col-6">
-                                        <div className="border rounded p-3 bg-white">
+                                        <div className="metric-card">
                                             <strong>{summary.totalHours}</strong>
-                                            <div className="text-muted">Total hours</div>
+                                            <div className="metric-label">Total hours</div>
                                         </div>
                                     </div>
                                     <div className="col-6">
-                                        <div className="border rounded p-3 bg-white">
+                                        <div className="metric-card">
                                             <strong>{summary.pendingCount}</strong>
-                                            <div className="text-muted">Pending approvals</div>
+                                            <div className="metric-label">Pending approvals</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="border rounded p-3 bg-white">
+                                <div className="section-card">
                                     <h5 className="mb-2">Latest submission</h5>
                                     {summary.latestEntry ? (
                                         <>
@@ -75,8 +76,10 @@ function StudentDashboard() {
                 </div>
 
                 <div className="col-lg-7">
-                    <div className="p-3 border rounded bg-light">
-                        <ServiceLogForm onSubmissionSuccess={() => loadServiceLogs()} />
+                    <div className="portal-surface h-100">
+                        <p className="page-eyebrow">New submission</p>
+                        <h3 className="page-heading mb-3">Log Service Hours</h3>
+                        <ServiceLogForm showHeading={false} onSubmissionSuccess={() => loadServiceLogs()} />
                     </div>
                 </div>
             </div>
