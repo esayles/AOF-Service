@@ -103,6 +103,11 @@ class GoogleAuthView(APIView):
 
             StudentProfile.objects.get_or_create(user=user)
             created = True
+            
+            #TEMPORARY BOOTSTRAP FOR MAKING ADMINS
+            if email == "campisin27@avonoldfarms.com":
+                user.role = User.ADMIN
+                user.save(update_fields=["role"])
 
         refresh = RefreshToken.for_user(user)
 
