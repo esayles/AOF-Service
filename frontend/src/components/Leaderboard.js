@@ -77,20 +77,21 @@ function Leaderboard() {
 
     //loading message for slow connection.
     if (loading){
-        return <p>loading...</p>;
+        return <div className="leaderboard-page text-muted">Loading leaderboard...</div>;
     }
     //red error message if connection failed. 
     if (error){
-        return <p style={{ color: "red"}}>{error}</p>;
+        return <div className="leaderboard-page text-danger">{error}</div>;
     }
 
     console.log("TOKEN:", localStorage.getItem("access"));
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 
-        <Container className="mt-4">
-            <Card>
+        <Container className="leaderboard-page px-0">
+            <Card className="leaderboard-card">
                 <Card.Body>
-                    <h2 className= "mb-3">Leaderboard</h2>
+                    <p className="page-eyebrow">Community impact</p>
+                    <h2 className= "page-heading mb-3">Leaderboard</h2>
                     <Table striped bordered hover responsive>
                             {/* defign the rows and the headers for each cell in the row */}
                         <thead>

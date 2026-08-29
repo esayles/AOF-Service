@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
-import { createServiceLog } from '../API';
+import React, { useEffect, useState } from 'react';
+import { createServiceLog, getFaculty } from '../API';
 
 
-function ServiceLogForm() {
+function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
     const [selectedTeacher, setSelectedTeacher] = useState('');
     const [description, setDescription] = useState('');
     const [hours, setHours] = useState('');
+    const [faculty, setFaculty] = useState([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [feedback, setFeedback] = useState({ type: '', message: '' });
+
+    useEffect(() => {
+        getFaculty()
+            .then((data) => setFaculty(Array.isArray(data) ? data : []))
+            .catch((error) => console.error('Error loading faculty list:', error));
+    }, []);
 
     const handleTeacherChange = (e) => {
         setSelectedTeacher(e.target.value);
@@ -21,28 +30,47 @@ function ServiceLogForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFeedback({ type: '', message: '' });
+
+        if (!description.trim() || !hours) {
+            setFeedback({ type: 'error', message: 'Please add a description and hours before submitting.' });
+            return;
+        }
+
         const payload = {
-            description: description,
+            description: description.trim(),
             hours: parseFloat(hours),
-            date_performed: new Date().toISOString().slice(0, 10), // Format as YYYY-MM-DD
+            date_performed: new Date().toISOString().slice(0, 10),
+            ...(selectedTeacher ? { request_verifier: parseInt(selectedTeacher, 10) } : {}),
         };
+
+        setIsSubmitting(true);
 
         try {
             const result = await createServiceLog(payload);
-            console.log('Service log created:', result);
+            setFeedback({ type: 'success', message: 'Your service hours were submitted successfully.' });
+            setSelectedTeacher('');
+            setDescription('');
+            setHours('');
+            if (onSubmissionSuccess) {
+                onSubmissionSuccess(result);
+            }
+        // Handle any errors that occur during the submission
         } catch (error) {
-            console.error('Error creating service log:', error);
-        }  
-
-        setSelectedTeacher('');
-        setDescription('');
-        setHours('');
-
-
+            setFeedback({ type: 'error', message: error.message || 'Something went wrong while submitting your hours.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit}>
+        <form className="section-card service-log-form" onSubmit={handleSubmit}>
+            {showHeading && (
+                <>
+                    <p className="page-eyebrow">New submission</p>
+                    <h2 className="page-heading mb-3">Log Service Hours</h2>
+                </>
+            )}
             <div className="mb-3">
                 <label htmlFor="floatingTextarea" className="form-label">Short Job Description</label>
                 <textarea 
@@ -64,7 +92,7 @@ function ServiceLogForm() {
                     value={hours}
                     onChange={handleHoursChange}
                     step="0.25"
-                    min="0"
+                    min="0.25"
                 />
             </div>
             <div className="mb-3">
@@ -77,13 +105,23 @@ function ServiceLogForm() {
                     onChange={handleTeacherChange}
                 >
                     <option value="">-- Choose an option --</option>
-                    <option value="1">One</option>
-                    <option value="2">Two</option>
-                    <option value="3">Three</option>
+                    {faculty.map((f) => (
+                        <option key={f.id} value={f.id}>
+                            {f.last_name}, {f.first_name}
+                        </option>
+                    ))}
                 </select>
             </div>
 
-            <button type="submit" className="btn btn-primary">Submit</button>
+            {feedback.message ? (
+                <div className={`alert ${feedback.type === 'error' ? 'alert-danger' : 'alert-success'}`} role="alert">
+                    {feedback.message}
+                </div>
+            ) : null}
+
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+            </button>
         </form>
     );
 }

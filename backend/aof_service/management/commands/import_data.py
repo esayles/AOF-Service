@@ -1,7 +1,15 @@
 import csv
-from django.core.management.base import BaseCommand
+import os
+
+from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
+
+# These CSVs contain real names/emails and must NEVER be committed to the
+# repo (backend/aof_service/data/ is gitignored). Override the paths with env
+# vars when the files live elsewhere (e.g. downloaded from a private S3 bucket).
+USERS_CSV = os.environ.get('IMPORT_USERS_CSV', 'aof_service/data/users_import.csv')
+HOURS_CSV = os.environ.get('IMPORT_HOURS_CSV', 'aof_service/data/hours_import.csv')
 
 from aof_service.models import StudentProfile, ServiceHour
 
@@ -34,11 +42,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
 
+        for path in (USERS_CSV, HOURS_CSV):
+            if not os.path.exists(path):
+                raise CommandError(
+                    f"CSV not found: {path}\n"
+                    "Place the private CSVs in backend/aof_service/data/ (gitignored) "
+                    "or set IMPORT_USERS_CSV / IMPORT_HOURS_CSV env vars."
+                )
+
         name_to_email = {}
         created_users = 0
 
         # IMPORT USERS
-        with open('aof_service/data/Person Query (574 records) 2026-02-12.csv', encoding='utf-8-sig') as file:
+        with open(USERS_CSV, encoding='utf-8-sig') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -91,7 +107,7 @@ class Command(BaseCommand):
         # IMPORT HOURS
         created_hours = 0
 
-        with open('aof_service/data/hours_import.csv', encoding='utf-8-sig') as file:
+        with open(HOURS_CSV, encoding='utf-8-sig') as file:
             reader = csv.DictReader(file)
 
             for row in reader:

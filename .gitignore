@@ -35,3 +35,6 @@ Thumbs.db
 *.pem
 *.key
 secrets.json
+
+# Private data imports (never commit real student/faculty data)
+backend/aof_service/data/

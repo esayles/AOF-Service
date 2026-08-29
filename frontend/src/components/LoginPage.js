@@ -1,27 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
+import { API_URL } from "../API";
+import { setAuthTokens } from "../auth/auth";
 
 function LoginPage() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const styles = {
-    container: {
-      maxWidth: "400px",
-      margin: "60px auto",
-      padding: "20px",
-      textAlign: "center",
-      border: "1px solid #ddd",
-      borderRadius: "8px",
-    },
-    message: {
-      marginTop: "12px",
-      color: "red",
-      fontSize: "14px",
-    },
-  };
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setError("");
@@ -30,7 +16,7 @@ function LoginPage() {
 
     try {
       //attempt to send the google id to the back end
-      const response = await fetch("https://aof-service-back.vercel.app/api", {
+      const response = await fetch(`${API_URL}/api/auth/google/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,9 +33,7 @@ function LoginPage() {
         throw new Error(data.detail || "Google login failed");
       }
 
-      // Adjust these keys if your backend uses different names
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
+      setAuthTokens({ access: data.access, refresh: data.refresh }, data.user);
 
       // Redirect to the leaderboard after successful login
       navigate("/leaderboard");
@@ -67,11 +51,13 @@ function LoginPage() {
 
   //the actual login page the user interacts with
   return (
-    <div style={styles.container}>
-      <h2>Login</h2>
-      <p>Sign in with your school Google account</p>
+    <div className="login-page">
+      <div className="portal-surface">
+      <p className="page-eyebrow">AOF Service</p>
+      <h2 className="page-heading">Sign in</h2>
+      <p className="page-description">Sign in with your school Google account.</p>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+      <div className="mt-3">
         {/*The call to the google o Auth*/}
         <GoogleLogin
           onSuccess={handleGoogleSuccess}
@@ -80,8 +66,9 @@ function LoginPage() {
         />
       </div>
 
-      {loading && <p style={{ marginTop: "12px" }}>Signing you in...</p>}
-      {error && <p style={styles.message}>{error}</p>}
+      {loading && <p className="text-muted mt-3 mb-0">Signing you in...</p>}
+      {error && <p className="text-danger small mt-3 mb-0">{error}</p>}
+      </div>
     </div>
   );
 }

@@ -31,6 +31,9 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: aof_service.settings.production
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          # Dummy values: settings require these at import time; tests never call Google
+          GOOGLE_CLIENT_ID: ci-test-only
+          GOOGLE_CLIENT_SECRET: ci-test-only
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -66,7 +69,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
       
       - name: Install frontend dependencies
         run: |
@@ -84,6 +87,7 @@ jobs:
           npm run build
         env:
           REACT_APP_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
