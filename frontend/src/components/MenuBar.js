@@ -2,7 +2,7 @@ import React from "react";
 import { Navbar, Nav, Container } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/images/Avon-symbol.png"; // Import the logo image
-import { canAccessFacultyApproval, clearAuthTokens, isAuthenticated } from "../auth/auth";
+import { canAccessFacultyApproval, clearAuthTokens, isAdmin, isAuthenticated } from "../auth/auth";
 
 //first thing I've written whith bootstrap, only makes sense if you're looking at the sintax
 //the design of the nav bar should change at some point 
@@ -11,6 +11,7 @@ function MenuBar() {
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
   const showApproveLink = canAccessFacultyApproval();
+  const showAdminLink = isAdmin();
 
   const handleLogout = () => {
     clearAuthTokens();
@@ -18,7 +19,7 @@ function MenuBar() {
   };
 
   return (
-    <Navbar bg="light" variant="light" expand="lg">
+    <Navbar className="app-navbar" expand="lg">
       <Container fluid className="px-2">
         {/* makes the brand name a link to the home page, which is the leaderboard */}
         <Navbar.Brand as={Link} to ="/leaderboard">
@@ -37,6 +38,7 @@ function MenuBar() {
           <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
           <Nav.Link as={Link} to="/profile">Profile</Nav.Link>
           {showApproveLink && <Nav.Link as={Link} to="/faculty-approval">Approve</Nav.Link>}
+          {showAdminLink && <Nav.Link as={Link} to="/admin">Admin</Nav.Link>}
           {authenticated ? (
             <Nav.Link as="button" onClick={handleLogout}>Logout</Nav.Link>
           ) : (

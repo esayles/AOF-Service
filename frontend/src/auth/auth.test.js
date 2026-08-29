@@ -1,4 +1,4 @@
-import { clearAuthTokens, isAuthenticated, setAuthTokens } from './auth';
+import { clearAuthTokens, getUserRole, isAdmin, isAuthenticated, setAuthTokens } from './auth';
 
 describe('auth helpers', () => {
   beforeEach(() => {
@@ -13,5 +13,18 @@ describe('auth helpers', () => {
 
     clearAuthTokens();
     expect(isAuthenticated()).toBe(false);
+  });
+
+  test('stores the role returned by the authenticated user', () => {
+    setAuthTokens({ access: 'access-token' }, { role: 'faculty' });
+    expect(getUserRole()).toBe('faculty');
+
+    setAuthTokens({ access: 'new-access-token' });
+    expect(getUserRole()).toBe('student');
+  });
+
+  test('identifies application administrators', () => {
+    setAuthTokens({ access: 'access-token' }, { role: 'admin' });
+    expect(isAdmin()).toBe(true);
   });
 });

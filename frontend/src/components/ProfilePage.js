@@ -32,13 +32,13 @@ function ProfilePage() {
 
 // Render the profile page, including the summary of service logs and a table of logged activities.
   return (
-    <div className="container py-4">
-      <Card className="border-0 shadow-sm rounded-4" style={{ background: 'linear-gradient(135deg, #f7fbff 0%, #eef5ff 100%)' }}>
+    <div className="portal-page container px-0">
+      <Card className="portal-surface border-0">
         <Card.Body className="p-4">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <p className="text-uppercase mb-1" style={{ color: '#4a6fa5', fontSize: '0.8rem', letterSpacing: '0.12em' }}>Profile</p>
-              <h2 className="mb-0">Your Contribution Profile</h2>
+              <p className="page-eyebrow">Profile</p>
+              <h2 className="page-heading">Your Contribution Profile</h2>
             </div>
           </div>
 
@@ -50,28 +50,28 @@ function ProfilePage() {
             <>
               <div className="row g-3 mb-4">
                 <div className="col-md-4">
-                  <div className="border rounded-3 p-3 bg-white h-100">
-                    <div className="text-muted small">Total Hours</div>
-                    <strong style={{ fontSize: '1.4rem', color: '#1f4e79' }}>{summary.totalHours}</strong>
+                  <div className="metric-card">
+                    <div className="metric-label">Total Hours</div>
+                    <strong>{summary.totalHours}</strong>
                   </div>
                 </div>
                 <div className="col-md-4">
-                  <div className="border rounded-3 p-3 bg-white h-100">
-                    <div className="text-muted small">Pending Approval</div>
-                    <strong style={{ fontSize: '1.4rem', color: '#b05d2c' }}>{summary.pendingCount}</strong>
+                  <div className="metric-card">
+                    <div className="metric-label">Pending Approval</div>
+                    <strong>{summary.pendingCount}</strong>
                   </div>
                 </div>
                 <div className="col-md-4">
-                  <div className="border rounded-3 p-3 bg-white h-100">
-                    <div className="text-muted small">Latest Entry</div>
-                    <strong style={{ fontSize: '1rem', color: '#1f4e79' }}>
+                  <div className="metric-card">
+                    <div className="metric-label">Latest Entry</div>
+                    <strong style={{ fontSize: '1rem' }}>
                       {summary.latestEntry ? summary.latestEntry.description : 'No entries yet'}
                     </strong>
                   </div>
                 </div>
               </div>
 
-              <div className="border rounded-3 bg-white p-3">
+              <div className="section-card">
                 <h5 className="mb-3">Activity Log</h5>
                 {serviceLogs.length === 0 ? (
                   <p className="text-muted mb-0">No activities logged yet.</p>

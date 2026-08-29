@@ -9,22 +9,6 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const styles = {
-    container: {
-      maxWidth: "400px",
-      margin: "60px auto",
-      padding: "20px",
-      textAlign: "center",
-      border: "1px solid #ddd",
-      borderRadius: "8px",
-    },
-    message: {
-      marginTop: "12px",
-      color: "red",
-      fontSize: "14px",
-    },
-  };
-
   const handleGoogleSuccess = async (credentialResponse) => {
     setError("");
     setLoading(true);
@@ -49,7 +33,7 @@ function LoginPage() {
         throw new Error(data.detail || "Google login failed");
       }
 
-      setAuthTokens({ access: data.access, refresh: data.refresh });
+      setAuthTokens({ access: data.access, refresh: data.refresh }, data.user);
 
       // Redirect to the leaderboard after successful login
       navigate("/leaderboard");
@@ -67,11 +51,13 @@ function LoginPage() {
 
   //the actual login page the user interacts with
   return (
-    <div style={styles.container}>
-      <h2>Login</h2>
-      <p>Sign in with your school Google account</p>
+    <div className="login-page">
+      <div className="portal-surface">
+      <p className="page-eyebrow">AOF Service</p>
+      <h2 className="page-heading">Sign in</h2>
+      <p className="page-description">Sign in with your school Google account.</p>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+      <div className="mt-3">
         {/*The call to the google o Auth*/}
         <GoogleLogin
           onSuccess={handleGoogleSuccess}
@@ -80,8 +66,9 @@ function LoginPage() {
         />
       </div>
 
-      {loading && <p style={{ marginTop: "12px" }}>Signing you in...</p>}
-      {error && <p style={styles.message}>{error}</p>}
+      {loading && <p className="text-muted mt-3 mb-0">Signing you in...</p>}
+      {error && <p className="text-danger small mt-3 mb-0">{error}</p>}
+      </div>
     </div>
   );
 }

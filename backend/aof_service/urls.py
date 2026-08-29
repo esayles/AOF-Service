@@ -24,6 +24,10 @@ class ApiRootView(APIView):
                 '/api/service-logs/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
                 '/api/service-logs/{id}/confirm/': ['POST'],
                 '/api/leaderboard/': ['GET'],
+                '/api/students/': ['GET (faculty/admin only)'],
+                '/api/admin/users/': ['GET (admin only)'],
+                '/api/admin/users/{id}/': ['PATCH role, DELETE (admin only)'],
+                '/api/admin/users/import/': ['POST multipart CSV (admin only)'],
                 '/api/auth/google/': ['POST'],
                 '/api/auth/login/': ['POST'],
                 '/api/auth/refresh/': ['POST'],
@@ -54,7 +58,15 @@ urlpatterns = [
 ]
 
 router = DefaultRouter()
-from .views import ServiceHourViewSet, LeaderboardView, FacultyListView
+from .views import (
+    AdminUserImportView,
+    AdminUserDetailView,
+    AdminUserListView,
+    FacultyListView,
+    LeaderboardView,
+    ServiceHourViewSet,
+    StudentListView,
+)
 router.register(r'service-logs', ServiceHourViewSet, basename='servicelog')
 from .auth_views import GoogleAuthView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -65,6 +77,10 @@ urlpatterns += [
     path('api/', include(router.urls)),
     path('api/leaderboard/', LeaderboardView.as_view()),
     path('api/faculty/', FacultyListView.as_view()),
+    path('api/students/', StudentListView.as_view()),
+    path('api/admin/users/', AdminUserListView.as_view()),
+    path('api/admin/users/import/', AdminUserImportView.as_view()),
+    path('api/admin/users/<int:user_id>/', AdminUserDetailView.as_view()),
     path('api/auth/google/', GoogleAuthView.as_view()),
     path('api/auth/login/', TokenObtainPairView.as_view()),
     path('api/auth/refresh/', TokenRefreshView.as_view()),

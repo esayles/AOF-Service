@@ -15,6 +15,8 @@ export function setAuthTokens(tokens, user = {}) {
   }
   if (user?.role) {
     localStorage.setItem(AUTH_KEYS.role, user.role);
+  } else {
+    localStorage.removeItem(AUTH_KEYS.role);
   }
 }
 
@@ -40,9 +42,14 @@ export function isFacultyOrAdmin() {
   return getUserRole() === 'faculty' || getUserRole() === 'admin';
 }
 
-// Allows us devs to view the approval page for faculty for testing. Refer to README for instructions on how to enable this feature.
+export function isAdmin() {
+  return getUserRole() === 'admin';
+}
+
+// This is a UI convenience only; Django enforces the role for every faculty
+// endpoint as well.
 export function canAccessFacultyApproval() {
-  return isFacultyOrAdmin() || localStorage.getItem('developerTestMode') === 'true';
+  return isFacultyOrAdmin();
 }
 
 // Returns access token for efficient calls.
