@@ -15,7 +15,7 @@ function MenuBar() {
 
   const handleLogout = () => {
     clearAuthTokens();
-    navigate('/LoginPage');
+    navigate('/Login');
   };
 
   return (
@@ -39,11 +39,9 @@ function MenuBar() {
           <Nav.Link as={Link} to="/profile">Profile</Nav.Link>
           {showApproveLink && <Nav.Link as={Link} to="/faculty-approval">Approve</Nav.Link>}
           {showAdminLink && <Nav.Link as={Link} to="/admin">Admin</Nav.Link>}
-          {authenticated ? (
-            <Nav.Link as="button" onClick={handleLogout}>Logout</Nav.Link>
-          ) : (
-            <Nav.Link as={Link} to="/LoginPage">Login</Nav.Link>
-          )}
+          <Nav.Link as="button" onClick={handleLogout}>
+            Logout
+          </Nav.Link>
         </Nav>
       </Container>
     </Navbar>
