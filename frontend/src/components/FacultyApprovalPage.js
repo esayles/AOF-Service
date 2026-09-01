@@ -6,6 +6,7 @@ import { Alert, Badge, Button, Spinner, Table } from 'react-bootstrap';
 import {
   approveServiceLog,
   createServiceLog,
+  declineServiceLog,
   getServiceLogs,
   getStudents,
   updateServiceLog,
@@ -56,6 +57,20 @@ function FacultyApprovalPage() {
       await loadData();
     } catch (err) {
       setError(err.message || 'Unable to approve this log.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  // Handles the decline of a service log by calling the declineServiceLog function and updating the list of logs upon success.
+  const handleDecline = async (id) => {
+    try {
+      setActioningId(id);
+      await declineServiceLog(id);
+      setSuccess('Service hours declined.');
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Unable to decline this log.');
     } finally {
       setActioningId(null);
     }
@@ -197,9 +212,16 @@ function FacultyApprovalPage() {
                   <td>{log.description}</td>
                   <td>{log.hours}</td>
                   <td>{log.date_performed}</td>
-                  <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
                   <td>
-                    {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                    {log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : log.declined_by ? <Badge bg="danger">Declined</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}
+                  </td>
+                  <td>
+                    {!log.confirmed_by && !log.declined_by && (
+                      <>
+                        <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Processing...' : 'Approve'}</Button>
+                        <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Processing...' : 'Decline'}</Button>
+                      </>
+                    )}
                     <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
                   </td>
                 </tr>
