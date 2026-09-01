@@ -315,7 +315,7 @@ class LeaderboardViewTests(TestCase):
         self.assertEqual(res.status_code, 200, res.content)
         self.assertNotIn("declined-student", [entry["username"] for entry in res.data])
 
-    def test_leaderboard_limits_to_top_10(self):
+    def test_leaderboard_returns_all_students_for_client_side_paging(self):
         # create 12 students with increasing hours 1..12
         for i in range(1, 13):
             u = User.objects.create_user(username=f"stu_{i}", password="pass", email=f"{i}@example.com")
@@ -325,8 +325,7 @@ class LeaderboardViewTests(TestCase):
         self.client.force_authenticate(user=self.viewer)
         res = self.client.get("/api/leaderboard/")
         self.assertEqual(res.status_code, 200, res.content)
-        # should be limited to top 10
-        self.assertEqual(len(res.data), 10)
+        self.assertEqual(len(res.data), 12)
         # top should be the student with 12 hours
         self.assertEqual(res.data[0]["username"], "stu_12")
 

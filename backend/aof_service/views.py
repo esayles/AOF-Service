@@ -141,7 +141,7 @@ class LeaderboardView(APIView):
 
     def get(self, request):
         """Return top student profiles ordered by cached_total_hours."""
-        qs = StudentProfile.objects.filter(cached_total_hours__gt=0).order_by("-cached_total_hours")[:10]
+        qs = StudentProfile.objects.filter(cached_total_hours__gt=0).order_by("-cached_total_hours")
         serializer = StudentProfileSerializer(qs, many=True)
         return Response(serializer.data)
 
