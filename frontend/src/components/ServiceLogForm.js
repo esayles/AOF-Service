@@ -5,6 +5,8 @@ import { isFacultyOrAdmin } from '../auth/auth';
 
 function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
     const staffUser = isFacultyOrAdmin();
+    console.log("Stored role:", localStorage.getItem("role"));
+    console.log("staffUser:", staffUser);
     const [selectedTeacher, setSelectedTeacher] = useState('');
     const [selectedStudent, setSelectedStudent] = useState('');
     const [teacherSearch, setTeacherSearch] = useState('');
@@ -127,7 +129,7 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
             setHours('');
             setTeacherSearch('');
             setStudentSearch('');
-            
+
             if (onSubmissionSuccess) {
                 onSubmissionSuccess(result);
             }
