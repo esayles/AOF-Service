@@ -56,14 +56,15 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         service_hour = serializer.save()
-        if self.request.user.role in (User.FACULTY, User.ADMIN):
+        is_self_submitted = service_hour.student.user_id == self.request.user.id
+        if self.request.user.role in (User.FACULTY, User.ADMIN) and not is_self_submitted:
             # A staff member entering hours directly is a viable verifier, so the
             # log is immediately confirmed instead of creating another pending approval.
             service_hour.confirmed_by = self.request.user
             service_hour.confirmed_at = timezone.now()
             service_hour.save(update_fields=["confirmed_by", "confirmed_at"])
         else:
-            # Notify the requested verifier.
+            # Student and self-submitted admin entries require verification.
             send_verification_request(service_hour)
 
     # A method that allows faculty/admin to update students' service logs.

@@ -197,6 +197,24 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(service_hour.confirmed_by, self.faculty_user)
         self.assertIsNotNone(service_hour.confirmed_at)
 
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_admin_can_submit_their_own_hours_for_verification(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        res = self.client.post("/api/service-logs/", {
+            "description": "Administrator volunteer activity",
+            "hours": "2.50",
+            "date_performed": date.today().isoformat(),
+            "request_verifier": self.faculty_user.pk,
+        }, format="json")
+
+        self.assertEqual(res.status_code, 201, res.content)
+        service_hour = ServiceHour.objects.get(pk=res.data["id"])
+        self.assertEqual(service_hour.student.user, self.admin_user)
+        self.assertEqual(service_hour.request_verifier, self.faculty_user)
+        self.assertIsNone(service_hour.confirmed_by)
+        self.assertEqual(len(mail.outbox), 1)
+
     def test_faculty_can_edit_a_student_service_log(self):
         service_hour = ServiceHour.objects.create(
             student=self.student_profile,

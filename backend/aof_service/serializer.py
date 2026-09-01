@@ -86,7 +86,12 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             })
 
         user = request.user
-        if getattr(user, "role", None) in (User.FACULTY, User.ADMIN):
+        if getattr(user, "role", None) == User.ADMIN and "student" not in validated_data:
+            # Admins can submit their own service activity for verification.
+            # Older admin accounts may not have a profile yet.
+            profile, _ = StudentProfile.objects.get_or_create(user=user)
+            validated_data["student"] = profile
+        elif getattr(user, "role", None) in (User.FACULTY, User.ADMIN):
             if "student" not in validated_data:
                 raise serializers.ValidationError({
                     "student": "Choose the student whose hours are being recorded."
