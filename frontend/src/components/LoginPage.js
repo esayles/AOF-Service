@@ -33,6 +33,7 @@ function LoginPage() {
         throw new Error(data.detail || "Google login failed");
       }
 
+      console.log("Logged in user:", data.user);
       setAuthTokens({ access: data.access, refresh: data.refresh }, data.user);
 
       // Redirect to the leaderboard after successful login
