@@ -15,14 +15,4 @@ describe('getStudentSummary', () => {
     expect(summary.recentEntries).toHaveLength(2);
     expect(summary.latestEntry?.description).toBe('Tutoring');
   });
-
-  test('does not count declined logs as pending', () => {
-    const summary = getStudentSummary([
-      { id: 1, hours: 2, date_performed: '2026-08-01', confirmed_by: null, declined_by: 8 },
-      { id: 2, hours: 1, date_performed: '2026-07-28', confirmed_by: null, declined_by: null },
-    ]);
-
-    expect(summary.totalHours).toBe(1);
-    expect(summary.pendingCount).toBe(1);
-  });
 });

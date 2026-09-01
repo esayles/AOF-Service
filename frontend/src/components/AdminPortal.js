@@ -14,9 +14,7 @@ import {
 } from '../API';
 
 function AdminPortal() {
-  const MAX_VISIBLE_ROWS = 50;
   const [users, setUsers] = useState([]);
-  const [showAllUsers, setShowAllUsers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -99,7 +97,6 @@ function AdminPortal() {
       setActioningUserId(null);
     }
   };
-  const visibleUsers = showAllUsers ? users : users.slice(0, MAX_VISIBLE_ROWS);
   
   return (
     <div className="portal-page container px-0">
@@ -140,7 +137,6 @@ function AdminPortal() {
             {loading ? (
               <div className="text-muted"><Spinner animation="border" size="sm" className="me-2" />Loading users...</div>
             ) : (
-              <>
               <Table responsive hover bordered className="bg-white mb-0">
                 <thead>
                   <tr>
@@ -152,7 +148,7 @@ function AdminPortal() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleUsers.map((user) => (
+                  {users.map((user) => (
                     <tr key={user.id}>
                       <td>{`${user.first_name} ${user.last_name}`.trim() || '—'}</td>
                       <td>{user.email}</td>
@@ -184,12 +180,6 @@ function AdminPortal() {
                   ))}
                 </tbody>
               </Table>
-              {!showAllUsers && users.length > MAX_VISIBLE_ROWS && (
-                <Button variant="outline-primary" size="sm" className="mt-3" onClick={() => setShowAllUsers(true)}>
-                  View all ({users.length})
-                </Button>
-              )}
-              </>
             )}
           </Tab>
         </Tabs>

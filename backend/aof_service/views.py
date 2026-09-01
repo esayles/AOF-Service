@@ -46,25 +46,22 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         qs = ServiceHour.objects.select_related(
-            "student__user", "confirmed_by", "declined_by", "request_verifier"
+            "student__user", "confirmed_by", "request_verifier"
         )
-        if getattr(user, "role", None) == User.ADMIN:
+        if getattr(user, "role", None) in ("faculty", "admin"):
             return qs
-        if getattr(user, "role", None) == User.FACULTY:
-            return qs.filter(request_verifier=user)
         return qs.filter(student__user=user)
 
     def perform_create(self, serializer):
         service_hour = serializer.save()
-        is_self_submitted = service_hour.student.user_id == self.request.user.id
-        if self.request.user.role in (User.FACULTY, User.ADMIN) and not is_self_submitted:
+        if self.request.user.role in (User.FACULTY, User.ADMIN):
             # A staff member entering hours directly is a viable verifier, so the
             # log is immediately confirmed instead of creating another pending approval.
             service_hour.confirmed_by = self.request.user
             service_hour.confirmed_at = timezone.now()
             service_hour.save(update_fields=["confirmed_by", "confirmed_at"])
         else:
-            # Student and self-submitted admin entries require verification.
+            # Notify the requested verifier.
             send_verification_request(service_hour)
 
     # A method that allows faculty/admin to update students' service logs.
@@ -90,8 +87,6 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         if obj.confirmed_by_id:
             raise ValidationError({"detail": "This service log has already been confirmed."})
-        if obj.declined_by_id:
-            raise ValidationError({"detail": "This service log has already been declined."})
         if (
             obj.request_verifier_id
             and obj.request_verifier_id != request.user.id
@@ -101,29 +96,6 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         obj.confirmed_by = request.user
         obj.confirmed_at = timezone.now()
         obj.save()
-
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
-
-    # A method that allows faculty/admin to decline a pending verification request without deleting it.
-    @action(detail=True, methods=("post",), url_path="decline", permission_classes=(IsAuthenticated, IsFacultyOrAdminPermission))
-    def decline(self, request, pk=None):
-        """Mark a pending verification request as declined without deleting it."""
-        obj = self.get_object()
-        if obj.confirmed_by_id:
-            raise ValidationError({"detail": "This service log has already been confirmed."})
-        if obj.declined_by_id:
-            raise ValidationError({"detail": "This service log has already been declined."})
-        if (
-            obj.request_verifier_id
-            and obj.request_verifier_id != request.user.id
-            and request.user.role != User.ADMIN
-        ):
-            raise PermissionDenied("Only the requested verifier or an administrator can decline this log.")
-
-        obj.declined_by = request.user
-        obj.declined_at = timezone.now()
-        obj.save(update_fields=["declined_by", "declined_at"])
 
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
@@ -141,7 +113,7 @@ class LeaderboardView(APIView):
 
     def get(self, request):
         """Return top student profiles ordered by cached_total_hours."""
-        qs = StudentProfile.objects.filter(cached_total_hours__gt=0).order_by("-cached_total_hours")
+        qs = StudentProfile.objects.order_by("-cached_total_hours")[:10]
         serializer = StudentProfileSerializer(qs, many=True)
         return Response(serializer.data)
 
