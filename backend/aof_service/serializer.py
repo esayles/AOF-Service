@@ -22,6 +22,8 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField(read_only=True)
     confirmed_by = serializers.PrimaryKeyRelatedField(read_only=True)
     confirmed_at = serializers.DateTimeField(read_only=True)
+    declined_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    declined_at = serializers.DateTimeField(read_only=True)
     request_verifier = serializers.PrimaryKeyRelatedField(
         required=False,
         allow_null=True,
@@ -39,6 +41,8 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             "date_performed",
             "confirmed_by",
             "confirmed_at",
+            "declined_by",
+            "declined_at",
             "request_verifier",
         ]
 
@@ -82,7 +86,12 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             })
 
         user = request.user
-        if getattr(user, "role", None) in (User.FACULTY, User.ADMIN):
+        if getattr(user, "role", None) == User.ADMIN and "student" not in validated_data:
+            # Admins can submit their own service activity for verification.
+            # Older admin accounts may not have a profile yet.
+            profile, _ = StudentProfile.objects.get_or_create(user=user)
+            validated_data["student"] = profile
+        elif getattr(user, "role", None) in (User.FACULTY, User.ADMIN):
             if "student" not in validated_data:
                 raise serializers.ValidationError({
                     "student": "Choose the student whose hours are being recorded."

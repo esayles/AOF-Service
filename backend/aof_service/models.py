@@ -66,7 +66,7 @@ class StudentProfile(models.Model):
     @property
     def total_hours(self):
         """Return the total service hours for this student as a Decimal."""
-        total = self.service_hours.aggregate(total=Sum("hours"))["total"]
+        total = self.service_hours.filter(declined_by__isnull=True).aggregate(total=Sum("hours"))["total"]
         return total if total is not None else Decimal("0.00")
 
 
@@ -76,6 +76,15 @@ class ServiceHour(models.Model):
     hours = models.DecimalField(max_digits=5, decimal_places=2)
     confirmed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, limit_choices_to={"role": "faculty"})
     confirmed_at = models.DateTimeField(null=True, blank=True)
+    declined_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="declined_verification_requests",
+        limit_choices_to={"role__in": ("faculty", "admin")},
+    )
+    declined_at = models.DateTimeField(null=True, blank=True)
     date_performed = models.DateField()
     request_verifier = models.ForeignKey(
         User,
@@ -93,7 +102,7 @@ class ServiceHour(models.Model):
 
 # Helper to recompute cached total for a StudentProfile
 def _recompute_cached_total(student_profile):
-    total = student_profile.service_hours.aggregate(total=Sum("hours"))["total"] or Decimal("0.00")
+    total = student_profile.service_hours.filter(declined_by__isnull=True).aggregate(total=Sum("hours"))["total"] or Decimal("0.00")
     StudentProfile.objects.filter(pk=student_profile.pk).update(cached_total_hours=total)
 
 
