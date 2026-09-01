@@ -97,17 +97,18 @@ class GoogleAuthView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            user.set_unusable_password()
-            user.role = User.STUDENT
-            user.save()
+        user.set_unusable_password()
+        user.role = User.STUDENT
+        user.save()
 
-            StudentProfile.objects.get_or_create(user=user)
-            created = True
+        StudentProfile.objects.get_or_create(user=user)
+        created = True
             
-            #TEMPORARY BOOTSTRAP FOR MAKING ADMINS
-            if email == "campisin27@avonoldfarms.com":
-                user.role = User.ADMIN
-                user.save(update_fields=["role"])
+        #TEMPORARY BOOTSTRAP FOR MAKING ADMINS
+        approved_admin_emails = ["campisin27@avonoldfarms.com", "colettil27@avonoldfarms.com"]
+        if email == any(approved_admin_emails):
+            user.role = User.ADMIN
+            user.save(update_fields=["role"])
 
         refresh = RefreshToken.for_user(user)
 
