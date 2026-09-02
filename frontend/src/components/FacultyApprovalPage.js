@@ -6,6 +6,7 @@ import { Alert, Badge, Button, Spinner, Table } from 'react-bootstrap';
 import {
   approveServiceLog,
   createServiceLog,
+  declineServiceLog,
   getServiceLogs,
   getStudents,
   updateServiceLog,
@@ -61,6 +62,23 @@ function FacultyApprovalPage() {
     }
   };
 
+  const handleDecline = async (id) => {
+    if (!window.confirm('Decline this submission? It will be permanently removed.')) {
+      return;
+    }
+
+    try {
+      setActioningId(id);
+      await declineServiceLog(id);
+      setSuccess('Service hour submission declined.');
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Unable to decline this log.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
@@ -90,7 +108,7 @@ function FacultyApprovalPage() {
         setSuccess('Service log updated.');
       } else {
         await createServiceLog({ ...payload, student: Number(form.student) });
-        setSuccess('Confirmed service hours added for the student.');
+        setSuccess('Service hours added for the student.');
       }
       resetForm();
       await loadData();
@@ -130,7 +148,7 @@ function FacultyApprovalPage() {
 
         <form className="section-card mb-4" onSubmit={handleSubmit}>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="mb-0">{editingLog ? 'Edit Service Log' : 'Add Confirmed Hours'}</h5>
+            <h5 className="mb-0">{editingLog ? 'Edit Service Log' : 'Add Service Hours'}</h5>
             {editingLog && <Button variant="outline-secondary" size="sm" type="button" onClick={resetForm}>Cancel edit</Button>}
           </div>
           <div className="row g-3">
@@ -167,7 +185,7 @@ function FacultyApprovalPage() {
             </div>
           </div>
           <Button className="mt-3" type="submit" disabled={actioningId === 'new' || Boolean(editingLog && actioningId === editingLog.id)}>
-            {editingLog ? 'Save Changes' : 'Add Confirmed Hours'}
+            {editingLog ? 'Save Changes' : 'Add Service Hours'}
           </Button>
         </form>
 
@@ -200,6 +218,7 @@ function FacultyApprovalPage() {
                   <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
                   <td>
                     {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                    {!log.confirmed_by && <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
                     <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
                   </td>
                 </tr>

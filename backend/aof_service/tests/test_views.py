@@ -20,6 +20,7 @@ class ServiceHourViewTests(TestCase):
 
         # create faculty user
         self.faculty_user = User.objects.create_user(username="faculty2", password="pass", email="f2@example.com", role=User.FACULTY)
+        self.other_faculty_user = User.objects.create_user(username="faculty3", password="pass", email="f3@example.com", role=User.FACULTY)
 
     def test_student_create_without_student_uses_request_user(self):
         self.client.force_authenticate(user=self.student_user)
@@ -78,7 +79,13 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(res.status_code, 403)
 
     def test_faculty_can_confirm_servicehour(self):
-        sh = ServiceHour.objects.create(student=self.student_profile, description="Test 2", hours=2.0, date_performed=date.today())
+        sh = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Test 2",
+            hours=2.0,
+            date_performed=date.today(),
+            request_verifier=self.faculty_user,
+        )
 
         self.client.force_authenticate(user=self.faculty_user)
         res = self.client.post(f"/api/service-logs/{sh.pk}/confirm/")
@@ -87,6 +94,34 @@ class ServiceHourViewTests(TestCase):
         sh.refresh_from_db()
         self.assertEqual(sh.confirmed_by.pk, self.faculty_user.pk)
         self.assertIsNotNone(sh.confirmed_at)
+
+    def test_faculty_only_sees_logs_requested_from_them(self):
+        assigned_log = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Assigned to this faculty member",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=self.faculty_user,
+        )
+        ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Assigned to another faculty member",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=self.other_faculty_user,
+        )
+        ServiceHour.objects.create(
+            student=self.student_profile,
+            description="No verifier requested",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+        )
+        self.client.force_authenticate(user=self.faculty_user)
+
+        res = self.client.get("/api/service-logs/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual([log["id"] for log in res.data], [assigned_log.pk])
 
     def test_faculty_can_add_confirmed_hours_for_a_student(self):
         self.client.force_authenticate(user=self.faculty_user)
@@ -104,12 +139,34 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(service_hour.confirmed_by, self.faculty_user)
         self.assertIsNotNone(service_hour.confirmed_at)
 
+    def test_admin_created_service_hours_remain_pending(self):
+        admin_user = User.objects.create_user(
+            username="admin2",
+            password="pass",
+            email="admin2@example.com",
+            role=User.ADMIN,
+        )
+        self.client.force_authenticate(user=admin_user)
+
+        res = self.client.post("/api/service-logs/", {
+            "student": self.student_profile.pk,
+            "description": "Admin test submission",
+            "hours": "2.50",
+            "date_performed": date.today().isoformat(),
+        }, format="json")
+
+        self.assertEqual(res.status_code, 201, res.content)
+        service_hour = ServiceHour.objects.get(pk=res.data["id"])
+        self.assertIsNone(service_hour.confirmed_by)
+        self.assertIsNone(service_hour.confirmed_at)
+
     def test_faculty_can_edit_a_student_service_log(self):
         service_hour = ServiceHour.objects.create(
             student=self.student_profile,
             description="Original description",
             hours=Decimal("1.00"),
             date_performed=date.today(),
+            request_verifier=self.faculty_user,
         )
         self.client.force_authenticate(user=self.faculty_user)
 
@@ -123,6 +180,21 @@ class ServiceHourViewTests(TestCase):
         service_hour.refresh_from_db()
         self.assertEqual(service_hour.description, "Corrected description")
         self.assertEqual(service_hour.hours, Decimal("1.50"))
+
+    def test_faculty_can_decline_a_pending_service_log(self):
+        service_hour = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Declined submission",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=self.faculty_user,
+        )
+        self.client.force_authenticate(user=self.faculty_user)
+
+        res = self.client.delete(f"/api/service-logs/{service_hour.pk}/")
+
+        self.assertEqual(res.status_code, 204, res.content)
+        self.assertFalse(ServiceHour.objects.filter(pk=service_hour.pk).exists())
 
     def test_student_cannot_edit_confirmed_service_hours(self):
         service_hour = ServiceHour.objects.create(

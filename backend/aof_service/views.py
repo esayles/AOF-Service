@@ -41,22 +41,26 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Students only ever see (and can only modify) their own logs.
 
-        Faculty and admins see everything. Because detail routes go through
-        this queryset too, a student requesting someone else's log gets a 404.
+        Faculty can only access logs that name them as the requested verifier;
+        administrators can access all logs. Detail routes use this queryset as
+        well, so faculty cannot approve, edit, or decline another verifier’s
+        request.
         """
         user = self.request.user
         qs = ServiceHour.objects.select_related(
             "student__user", "confirmed_by", "request_verifier"
         )
-        if getattr(user, "role", None) in ("faculty", "admin"):
+        if getattr(user, "role", None) == User.ADMIN:
             return qs
+        if getattr(user, "role", None) == User.FACULTY:
+            return qs.filter(request_verifier=user)
         return qs.filter(student__user=user)
 
     def perform_create(self, serializer):
         service_hour = serializer.save()
-        if self.request.user.role in (User.FACULTY, User.ADMIN):
-            # A staff member entering hours directly is a viable verifier, so the
-            # log is immediately confirmed instead of creating another pending approval.
+        if self.request.user.role == User.FACULTY:
+            # Faculty-entered hours are already verified by the faculty member
+            # who recorded them. Admin-entered logs remain pending for review.
             service_hour.confirmed_by = self.request.user
             service_hour.confirmed_at = timezone.now()
             service_hour.save(update_fields=["confirmed_by", "confirmed_at"])
