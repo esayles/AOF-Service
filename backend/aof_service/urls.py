@@ -23,6 +23,7 @@ class ApiRootView(APIView):
                 '/api/service-logs/': ['GET', 'POST'],
                 '/api/service-logs/{id}/': ['GET', 'PUT', 'PATCH', 'DELETE'],
                 '/api/service-logs/{id}/confirm/': ['POST'],
+                '/api/service-logs/{id}/decline/': ['POST'],
                 '/api/leaderboard/': ['GET'],
                 '/api/students/': ['GET (faculty/admin only)'],
                 '/api/admin/users/': ['GET (admin only)'],

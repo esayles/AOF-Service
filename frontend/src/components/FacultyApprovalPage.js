@@ -6,17 +6,21 @@ import { Alert, Badge, Button, Spinner, Table } from 'react-bootstrap';
 import {
   approveServiceLog,
   createServiceLog,
+  declineServiceLog,
   getServiceLogs,
   getStudents,
   updateServiceLog,
 } from '../API';
 
+const today = () => new Date().toISOString().slice(0, 10);
+
 const emptyForm = () => ({
   student: '',
   description: '',
   hours: '',
-  date_performed: new Date().toISOString().slice(0, 10),
+  date_performed: today(),
 });
+const MAX_VISIBLE_ROWS = 50;
 
 // The FacultyApprovalPage component fetches pending service logs and allows faculty members to approve them.
 function FacultyApprovalPage() {
@@ -28,6 +32,7 @@ function FacultyApprovalPage() {
   const [actioningId, setActioningId] = useState(null);
   const [editingLog, setEditingLog] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [showAllLogs, setShowAllLogs] = useState(false);
 
   const loadData = async () => {
     try {
@@ -56,6 +61,20 @@ function FacultyApprovalPage() {
       await loadData();
     } catch (err) {
       setError(err.message || 'Unable to approve this log.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  // Handles the decline of a service log by calling the declineServiceLog function and updating the list of logs upon success.
+  const handleDecline = async (id) => {
+    try {
+      setActioningId(id);
+      await declineServiceLog(id);
+      setSuccess('Service hours declined.');
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Unable to decline this log.');
     } finally {
       setActioningId(null);
     }
@@ -109,14 +128,23 @@ function FacultyApprovalPage() {
       student: String(log.student),
       description: log.description,
       hours: String(log.hours),
-      date_performed: log.date_performed,
+      date_performed: log.date_performed || today(),
     });
   };
 
-  const newestFirstLogs = [...logs].sort((a, b) => {
+  const sortedLogs = [...logs].sort((a, b) => {
+    const statusOrder = (log) => {
+      if (log.confirmed_by) return 2;
+      if (log.declined_by) return 1;
+      return 0;
+    };
+    const statusDifference = statusOrder(a) - statusOrder(b);
+    if (statusDifference) return statusDifference;
     const dateOrder = new Date(b.date_performed) - new Date(a.date_performed);
     return dateOrder || b.id - a.id;
   });
+  const visibleLogs = showAllLogs ? sortedLogs : sortedLogs.slice(0, MAX_VISIBLE_ROWS);
+  const editingStudentIsMissing = editingLog && !students.some((student) => String(student.id) === String(editingLog.student));
 
   return (
     <div className="portal-page container px-0">
@@ -146,6 +174,7 @@ function FacultyApprovalPage() {
                 required
               >
                 <option value="">Choose a student</option>
+                {editingStudentIsMissing && <option value={editingLog.student}>{editingLog.student_name}</option>}
                 {students.map((student) => (
                   <option key={student.id} value={student.id}>
                     {student.last_name}, {student.first_name} ({student.email})
@@ -179,6 +208,7 @@ function FacultyApprovalPage() {
         ) : logs.length === 0 ? (
           <Alert variant="success">No service logs to review.</Alert>
         ) : (
+          <>
           <Table bordered hover responsive>
             <thead>
               <tr>
@@ -191,21 +221,34 @@ function FacultyApprovalPage() {
               </tr>
             </thead>
             <tbody>
-              {newestFirstLogs.map((log) => (
+              {visibleLogs.map((log) => (
                 <tr key={log.id}>
                   <td>{log.student_name}</td>
                   <td>{log.description}</td>
                   <td>{log.hours}</td>
                   <td>{log.date_performed}</td>
-                  <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
                   <td>
-                    {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                    {log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : log.declined_by ? <Badge bg="danger">Declined</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}
+                  </td>
+                  <td>
+                    {!log.confirmed_by && !log.declined_by && (
+                      <>
+                        <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Processing...' : 'Approve'}</Button>
+                        <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Processing...' : 'Decline'}</Button>
+                      </>
+                    )}
                     <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </Table>
+          {!showAllLogs && sortedLogs.length > MAX_VISIBLE_ROWS && (
+            <Button variant="outline-primary" className="mt-3" onClick={() => setShowAllLogs(true)}>
+              View all ({sortedLogs.length})
+            </Button>
+          )}
+          </>
         )}
       </div>
     </div>

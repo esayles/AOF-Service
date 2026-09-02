@@ -98,6 +98,15 @@ export const approveServiceLog = async (id) => {
   return readResponse(response, 'Unable to approve this submission.');
 };
 
+export const declineServiceLog = async (id) => {
+  const response = await fetch(`${API_URL}/api/service-logs/${id}/decline/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  return readResponse(response, 'Unable to decline this submission.');
+};
+
 const getAuthHeaders = () => {
   const token = getAccessToken();
   return {
