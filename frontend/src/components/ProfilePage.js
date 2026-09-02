@@ -1,14 +1,12 @@
 // A page displaying the user's profile, including their service log summary and a table of their logged activities.
 
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Table, Badge } from 'react-bootstrap';
+import { Card, Table, Badge } from 'react-bootstrap';
 import { getMyServiceLogs } from '../API';
 import { getStudentSummary } from './dashboardUtils';
 
 function ProfilePage() {
-  const MAX_VISIBLE_ROWS = 50;
   const [serviceLogs, setServiceLogs] = useState([]);
-  const [showAllLogs, setShowAllLogs] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -31,7 +29,6 @@ function ProfilePage() {
   }, []);
 
   const summary = getStudentSummary(serviceLogs);
-  const visibleLogs = showAllLogs ? serviceLogs : serviceLogs.slice(0, MAX_VISIBLE_ROWS);
 
 // Render the profile page, including the summary of service logs and a table of logged activities.
   return (
@@ -79,7 +76,6 @@ function ProfilePage() {
                 {serviceLogs.length === 0 ? (
                   <p className="text-muted mb-0">No activities logged yet.</p>
                 ) : (
-                  <>
                   <Table responsive hover size="sm" className="mb-0">
                     <thead>
                       <tr>
@@ -90,16 +86,14 @@ function ProfilePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {visibleLogs.map((log) => (
+                      {serviceLogs.map((log) => (
                         <tr key={log.id}>
                           <td>{log.description}</td>
                           <td>{log.hours}</td>
                           <td>{log.date_performed}</td>
                           <td>
-                            {(log.confirmed_by ?? log.approved_by) ? (
+                            {log.approved_by ? (
                               <Badge bg="success">Approved</Badge>
-                            ) : log.declined_by ? (
-                              <Badge bg="danger">Declined</Badge>
                             ) : (
                               <Badge bg="warning" text="dark">Pending</Badge>
                             )}
@@ -108,12 +102,6 @@ function ProfilePage() {
                       ))}
                     </tbody>
                   </Table>
-                  {!showAllLogs && serviceLogs.length > MAX_VISIBLE_ROWS && (
-                    <Button variant="outline-primary" size="sm" className="mt-3" onClick={() => setShowAllLogs(true)}>
-                      View all ({serviceLogs.length})
-                    </Button>
-                  )}
-                  </>
                 )}
               </div>
             </>
