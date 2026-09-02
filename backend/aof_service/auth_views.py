@@ -105,7 +105,7 @@ class GoogleAuthView(APIView):
             created = True
             
         #TEMPORARY BOOTSTRAP FOR MAKING ADMINS
-        approved_admin_emails = ["campisin27@avonoldfarms.com", ""]
+        approved_admin_emails = ["campisin27@avonoldfarms.com", "colettil27@avonoldfarms.com", "wakefieldz27@avonoldfarms.com", "saylese@avonoldfarms.com"]
         if email in approved_admin_emails:
             if user.role != User.ADMIN:
                 user.role = User.ADMIN
