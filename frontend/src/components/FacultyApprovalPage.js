@@ -11,6 +11,7 @@ import {
   getStudents,
   updateServiceLog,
 } from '../API';
+import { useTableRowLimit } from './TableRowLimit';
 
 const emptyForm = () => ({
   student: '',
@@ -131,10 +132,15 @@ function FacultyApprovalPage() {
     });
   };
 
-  const newestFirstLogs = [...logs].sort((a, b) => {
+  const pendingFirstLogs = [...logs].sort((a, b) => {
+    // Confirmed submissions are retained for reference, but pending requests
+    // must stay at the top so faculty can act on them first.
+    const confirmationOrder = Number(Boolean(a.confirmed_by)) - Number(Boolean(b.confirmed_by));
+    if (confirmationOrder) return confirmationOrder;
     const dateOrder = new Date(b.date_performed) - new Date(a.date_performed);
     return dateOrder || b.id - a.id;
   });
+  const { visibleRows, rowLimitControl } = useTableRowLimit(pendingFirstLogs);
 
   return (
     <div className="portal-page container px-0">
@@ -197,34 +203,37 @@ function FacultyApprovalPage() {
         ) : logs.length === 0 ? (
           <Alert variant="success">No service logs to review.</Alert>
         ) : (
-          <Table bordered hover responsive>
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Description</th>
-                <th>Hours</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {newestFirstLogs.map((log) => (
-                <tr key={log.id}>
-                  <td>{log.student_name}</td>
-                  <td>{log.description}</td>
-                  <td>{log.hours}</td>
-                  <td>{log.date_performed}</td>
-                  <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
-                  <td>
-                    {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
-                    {!log.confirmed_by && <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
-                    <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
-                  </td>
+          <>
+            <Table bordered hover responsive>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Description</th>
+                  <th>Hours</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {visibleRows.map((log) => (
+                  <tr key={log.id}>
+                    <td>{log.student_name}</td>
+                    <td>{log.description}</td>
+                    <td>{log.hours}</td>
+                    <td>{log.date_performed}</td>
+                    <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
+                    <td>
+                      {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                      {!log.confirmed_by && <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
+                      <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            {rowLimitControl}
+          </>
         )}
       </div>
     </div>

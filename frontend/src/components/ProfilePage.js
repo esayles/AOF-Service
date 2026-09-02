@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Table, Badge } from 'react-bootstrap';
 import { getMyServiceLogs } from '../API';
 import { getStudentSummary } from './dashboardUtils';
+import { useTableRowLimit } from './TableRowLimit';
 
 function ProfilePage() {
   const [serviceLogs, setServiceLogs] = useState([]);
@@ -29,6 +30,7 @@ function ProfilePage() {
   }, []);
 
   const summary = getStudentSummary(serviceLogs);
+  const { visibleRows, rowLimitControl } = useTableRowLimit(serviceLogs);
 
 // Render the profile page, including the summary of service logs and a table of logged activities.
   return (
@@ -76,32 +78,35 @@ function ProfilePage() {
                 {serviceLogs.length === 0 ? (
                   <p className="text-muted mb-0">No activities logged yet.</p>
                 ) : (
-                  <Table responsive hover size="sm" className="mb-0">
-                    <thead>
-                      <tr>
-                        <th>Description</th>
-                        <th>Hours</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {serviceLogs.map((log) => (
-                        <tr key={log.id}>
-                          <td>{log.description}</td>
-                          <td>{log.hours}</td>
-                          <td>{log.date_performed}</td>
-                          <td>
-                            {log.approved_by ? (
-                              <Badge bg="success">Approved</Badge>
-                            ) : (
-                              <Badge bg="warning" text="dark">Pending</Badge>
-                            )}
-                          </td>
+                  <>
+                    <Table responsive hover size="sm" className="mb-0">
+                      <thead>
+                        <tr>
+                          <th>Description</th>
+                          <th>Hours</th>
+                          <th>Date</th>
+                          <th>Status</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                      </thead>
+                      <tbody>
+                        {visibleRows.map((log) => (
+                          <tr key={log.id}>
+                            <td>{log.description}</td>
+                            <td>{log.hours}</td>
+                            <td>{log.date_performed}</td>
+                            <td>
+                              {(log.confirmed_by ?? log.approved_by) ? (
+                                <Badge bg="success">Approved</Badge>
+                              ) : (
+                                <Badge bg="warning" text="dark">Pending</Badge>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                    {rowLimitControl}
+                  </>
                 )}
               </div>
             </>
