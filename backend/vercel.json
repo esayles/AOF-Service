@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "bash vercel_build.sh",
   "builds": [
     {
       "src": "aof_service/wsgi.py",
