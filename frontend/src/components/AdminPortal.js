@@ -9,8 +9,10 @@ import { Alert, Button, Spinner, Tab, Table, Tabs } from 'react-bootstrap';
 import {
   deleteAdminUser,
   getAdminUsers,
+  getAdminPreferences,
   importAdminUsers,
   updateAdminUserRole,
+  updateAdminPreferences,
 } from '../API';
 import { useTableRowLimit } from './TableRowLimit';
 
@@ -21,6 +23,9 @@ function AdminPortal() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [actioningUserId, setActioningUserId] = useState(null);
+  const [autoApproveHours, setAutoApproveHours] = useState(true);
+  const [preferencesLoading, setPreferencesLoading] = useState(true);
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
   const { visibleRows, rowLimitControl } = useTableRowLimit(users);
 
   const loadUsers = async () => {
@@ -36,8 +41,23 @@ function AdminPortal() {
     }
   };
 
+  const loadPreferences = async () => {
+    try {
+      setPreferencesLoading(true);
+  
+      const data = await getAdminPreferences();
+  
+      setAutoApproveHours(data.auto_approve_service_hours);
+    } catch (err) {
+      setError(err.message || 'Unable to load admin preferences.');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadUsers();
+    loadPreferences();
   }, []);
 
   const handleUpload = async (event) => {
@@ -77,6 +97,32 @@ function AdminPortal() {
       await loadUsers();
     } finally {
       setActioningUserId(null);
+    }
+  };
+
+  const handleAutoApproveChange = async (event) => {
+    const newValue = event.target.checked;
+  
+    setError('');
+    setSuccess('');
+    setPreferencesSaving(true);
+  
+    try {
+      const data = await updateAdminPreferences({
+        auto_approve_service_hours: newValue,
+      });
+  
+      setAutoApproveHours(data.auto_approve_service_hours);
+  
+      setSuccess(
+        data.auto_approve_service_hours
+          ? 'Admin-created service hours will now be automatically approved.'
+          : 'Admin-created service hours will now remain pending for testing.'
+      );
+    } catch (err) {
+      setError(err.message || 'Unable to update admin preferences.');
+    } finally {
+      setPreferencesSaving(false);
     }
   };
 
@@ -186,6 +232,48 @@ function AdminPortal() {
                 {rowLimitControl}
               </>
             )}
+          </Tab>
+
+          <Tab eventKey="testing" title="Testing">
+            <div className="section-card">
+              <h5>Service Hour Testing</h5>
+
+              <p className="text-muted">
+                These settings only affect your administrator account and are intended
+                for testing application behavior.
+              </p>
+
+              {preferencesLoading ? (
+                <div className="d-flex align-items-center gap-2 text-muted">
+                  <Spinner animation="border" size="sm" />
+                  Loading preferences...
+                </div>
+              ) : (
+                <div className="form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="autoApproveHours"
+                    checked={autoApproveHours}
+                    onChange={handleAutoApproveChange}
+                    disabled={preferencesSaving}
+                  />
+
+                  <label
+                    className="form-check-label"
+                    htmlFor="autoApproveHours"
+                  >
+                    Auto-approve service hours I create
+                  </label>
+                </div>
+              )}
+
+              <p className="text-muted mt-2 mb-0">
+                When disabled, service hours you create will remain pending so you can
+                test the approval workflow.
+              </p>
+            </div>
           </Tab>
         </Tabs>
       </div>

@@ -102,6 +102,25 @@ export const deleteAdminUser = async (id) => {
   }
   return readResponse(response, 'Unable to remove this user.');
 };
+
+export const getAdminPreferences = async () => {
+  const response = await fetch(`${API_URL}/api/admin/preferences/`, {
+    headers: getAuthHeaders(),
+  });
+
+  return readResponse(response, 'Unable to load admin preferences.');
+};
+//allows for future additions to the admin testing panel 
+export const updateAdminPreferences = async (preferences) => {
+  const response = await fetch(`${API_URL}/api/admin/preferences/`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(preferences),
+  });
+
+  return readResponse(response, 'Unable to update admin preferences.');
+};
+
 // Approves a service log by sending a POST request to the backend API. This function is used in the faculty approval page to approve student submissions.
 export const approveServiceLog = async (id) => {
   const response = await fetch(`${API_URL}/api/service-logs/${id}/confirm/`, {
