@@ -12,6 +12,7 @@ import {
   importAdminUsers,
   updateAdminUserRole,
 } from '../API';
+import { useTableRowLimit } from './TableRowLimit';
 
 function AdminPortal() {
   const [users, setUsers] = useState([]);
@@ -20,6 +21,7 @@ function AdminPortal() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [actioningUserId, setActioningUserId] = useState(null);
+  const { visibleRows, rowLimitControl } = useTableRowLimit(users);
 
   const loadUsers = async () => {
     try {
@@ -137,49 +139,52 @@ function AdminPortal() {
             {loading ? (
               <div className="text-muted"><Spinner animation="border" size="sm" className="me-2" />Loading users...</div>
             ) : (
-              <Table responsive hover bordered className="bg-white mb-0">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td>{`${user.first_name} ${user.last_name}`.trim() || '—'}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <select
-                          className="form-select form-select-sm text-capitalize"
-                          value={user.role}
-                          onChange={(event) => handleRoleChange(user, event.target.value)}
-                          disabled={actioningUserId === user.id}
-                          aria-label={`Role for ${user.email}`}
-                        >
-                          <option value="student">Student</option>
-                          <option value="faculty">Faculty</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td>{user.is_active ? 'Active' : 'Inactive'}</td>
-                      <td>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => handleDelete(user)}
-                          disabled={actioningUserId === user.id}
-                        >
-                          {actioningUserId === user.id ? 'Working...' : 'Remove'}
-                        </Button>
-                      </td>
+              <>
+                <Table responsive hover bordered className="bg-white mb-0">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
+                  </thead>
+                  <tbody>
+                    {visibleRows.map((user) => (
+                      <tr key={user.id}>
+                        <td>{`${user.first_name} ${user.last_name}`.trim() || '—'}</td>
+                        <td>{user.email}</td>
+                        <td>
+                          <select
+                            className="form-select form-select-sm text-capitalize"
+                            value={user.role}
+                            onChange={(event) => handleRoleChange(user, event.target.value)}
+                            disabled={actioningUserId === user.id}
+                            aria-label={`Role for ${user.email}`}
+                          >
+                            <option value="student">Student</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td>{user.is_active ? 'Active' : 'Inactive'}</td>
+                        <td>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleDelete(user)}
+                            disabled={actioningUserId === user.id}
+                          >
+                            {actioningUserId === user.id ? 'Working...' : 'Remove'}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                {rowLimitControl}
+              </>
             )}
           </Tab>
         </Tabs>
