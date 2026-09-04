@@ -23,6 +23,7 @@ class User(AbstractUser):
     ]
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=STUDENT)
+    auto_approve_service_hours = models.BooleanField(default=True)
     
     GOOGLE = "google"
     AUTH_PROVIDER_CHOICES = [

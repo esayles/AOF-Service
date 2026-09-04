@@ -54,13 +54,24 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         service_hour = serializer.save()
-        if self.request.user.role in (User.FACULTY, User.ADMIN):
+        user = self.request.user
+        #adds togel for admins and makes Faculty always auto approve
+        should_auto_approve = (
+            user.role == User.FACULTY
+            or (
+                user.role == User.ADMIN
+                and user.auto_approve_service_hours
+            )
+        )   
+
+        if should_auto_approve:
             # A staff member entering hours directly is a viable verifier, so the
             # log is immediately confirmed instead of creating another pending approval.
             service_hour.confirmed_by = self.request.user
             service_hour.confirmed_at = timezone.now()
             service_hour.save(update_fields=["confirmed_by", "confirmed_at"])
-        else:
+
+        elif user.role == User.STUDENT:
             # Notify the requested verifier.
             send_verification_request(service_hour)
 
@@ -160,6 +171,34 @@ class AdminUserListView(APIView):
     def get(self, request):
         users = User.objects.order_by("last_name", "first_name", "email")
         return Response(UserManagementSerializer(users, many=True).data)
+
+class AdminPreferencesView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminPermission]
+
+    def get(self, request):
+        return Response({
+            "auto_approve_service_hours": request.user.auto_approve_service_hours,
+        })
+
+    def patch(self, request):
+        if "auto_approve_service_hours" not in request.data:
+            raise ValidationError({
+                "auto_approve_service_hours": "This field is required."
+            })
+
+        value = request.data["auto_approve_service_hours"]
+
+        if not isinstance(value, bool):
+            raise ValidationError({
+                "auto_approve_service_hours": "Must be true or false."
+            })
+
+        request.user.auto_approve_service_hours = value
+        request.user.save(update_fields=["auto_approve_service_hours"])
+
+        return Response({
+            "auto_approve_service_hours": request.user.auto_approve_service_hours,
+        })
 
 
 class AdminUserImportView(APIView):
