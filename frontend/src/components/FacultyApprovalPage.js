@@ -6,10 +6,12 @@ import { Alert, Badge, Button, Spinner, Table } from 'react-bootstrap';
 import {
   approveServiceLog,
   createServiceLog,
+  declineServiceLog,
   getServiceLogs,
   getStudents,
   updateServiceLog,
 } from '../API';
+import { useTableRowLimit } from './TableRowLimit';
 
 const emptyForm = () => ({
   student: '',
@@ -61,6 +63,23 @@ function FacultyApprovalPage() {
     }
   };
 
+  const handleDecline = async (id) => {
+    if (!window.confirm('Decline this submission? It will be permanently removed.')) {
+      return;
+    }
+
+    try {
+      setActioningId(id);
+      await declineServiceLog(id);
+      setSuccess('Service hour submission declined.');
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Unable to decline this log.');
+    } finally {
+      setActioningId(null);
+    }
+  };
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
@@ -90,7 +109,7 @@ function FacultyApprovalPage() {
         setSuccess('Service log updated.');
       } else {
         await createServiceLog({ ...payload, student: Number(form.student) });
-        setSuccess('Confirmed service hours added for the student.');
+        setSuccess('Service hours added for the student.');
       }
       resetForm();
       await loadData();
@@ -113,10 +132,15 @@ function FacultyApprovalPage() {
     });
   };
 
-  const newestFirstLogs = [...logs].sort((a, b) => {
+  const pendingFirstLogs = [...logs].sort((a, b) => {
+    // Confirmed submissions are retained for reference, but pending requests
+    // must stay at the top so faculty can act on them first.
+    const confirmationOrder = Number(Boolean(a.confirmed_by)) - Number(Boolean(b.confirmed_by));
+    if (confirmationOrder) return confirmationOrder;
     const dateOrder = new Date(b.date_performed) - new Date(a.date_performed);
     return dateOrder || b.id - a.id;
   });
+  const { visibleRows, rowLimitControl } = useTableRowLimit(pendingFirstLogs);
 
   return (
     <div className="portal-page container px-0">
@@ -130,7 +154,7 @@ function FacultyApprovalPage() {
 
         <form className="section-card mb-4" onSubmit={handleSubmit}>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="mb-0">{editingLog ? 'Edit Service Log' : 'Add Confirmed Hours'}</h5>
+            <h5 className="mb-0">{editingLog ? 'Edit Service Log' : 'Add Service Hours'}</h5>
             {editingLog && <Button variant="outline-secondary" size="sm" type="button" onClick={resetForm}>Cancel edit</Button>}
           </div>
           <div className="row g-3">
@@ -167,7 +191,7 @@ function FacultyApprovalPage() {
             </div>
           </div>
           <Button className="mt-3" type="submit" disabled={actioningId === 'new' || Boolean(editingLog && actioningId === editingLog.id)}>
-            {editingLog ? 'Save Changes' : 'Add Confirmed Hours'}
+            {editingLog ? 'Save Changes' : 'Add Service Hours'}
           </Button>
         </form>
 
@@ -179,33 +203,37 @@ function FacultyApprovalPage() {
         ) : logs.length === 0 ? (
           <Alert variant="success">No service logs to review.</Alert>
         ) : (
-          <Table bordered hover responsive>
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Description</th>
-                <th>Hours</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {newestFirstLogs.map((log) => (
-                <tr key={log.id}>
-                  <td>{log.student_name}</td>
-                  <td>{log.description}</td>
-                  <td>{log.hours}</td>
-                  <td>{log.date_performed}</td>
-                  <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
-                  <td>
-                    {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
-                    <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
-                  </td>
+          <>
+            <Table bordered hover responsive>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Description</th>
+                  <th>Hours</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {visibleRows.map((log) => (
+                  <tr key={log.id}>
+                    <td>{log.student_name}</td>
+                    <td>{log.description}</td>
+                    <td>{log.hours}</td>
+                    <td>{log.date_performed}</td>
+                    <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
+                    <td>
+                      {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                      {!log.confirmed_by && <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
+                      <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            {rowLimitControl}
+          </>
         )}
       </div>
     </div>
