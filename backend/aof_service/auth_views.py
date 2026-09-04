@@ -104,19 +104,6 @@ class GoogleAuthView(APIView):
             StudentProfile.objects.get_or_create(user=user)
             created = True
             
-        #TEMPORARY BOOTSTRAP FOR MAKING ADMINS
-        approved_admin_emails = ["campisin27@avonoldfarms.com", "colettil27@avonoldfarms.com", "wakefieldz27@avonoldfarms.com", "saylese@avonoldfarms.com"]
-        if email in approved_admin_emails:
-            if user.role != User.ADMIN:
-                user.role = User.ADMIN
-                user.save(update_fields=["role"])
-        else:
-            # If someone was previously an admin but is no longer
-            # approved, return them to student
-            if user.role == User.ADMIN:
-                user.role = User.STUDENT
-                user.save(update_fields=["role"])
-
         refresh = RefreshToken.for_user(user)
 
         logger.info(
