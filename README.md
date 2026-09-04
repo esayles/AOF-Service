@@ -74,4 +74,11 @@ print("ACCESS TOKEN:", str(access_token))
 
 ```
 
->if you load your token into local storage, make sure that you name it "access" 
+>if you load your token into local storage, make sure that you name it "access"
+
+
+## Active Changes:
+
+- Admin Debug menu --> Working
+- Declined requests Changes
+- Fix approval email bug (Sayles)
