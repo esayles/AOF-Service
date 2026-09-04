@@ -103,7 +103,7 @@ class GoogleAuthView(APIView):
 
             StudentProfile.objects.get_or_create(user=user)
             created = True
-
+            
         refresh = RefreshToken.for_user(user)
 
         logger.info(
@@ -120,6 +120,7 @@ class GoogleAuthView(APIView):
                     "id": user.pk,
                     "email": user.email,
                     "username": user.username,
+                    "role": user.role,
                 },
             }
         )

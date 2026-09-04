@@ -7,6 +7,7 @@ in production). Never hardcode credentials or recipients here.
 
 import logging
 
+from django.conf import settings
 from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ def send_verification_request(service_hour):
         return False
 
     student_user = service_hour.student.user
+    app_url = getattr(settings, "SERVICE_HOUR_APP_URL", "https://aof-service.vercel.app")
     subject = "Service Hour Verification Request"
     message = (
         f"Dear {verifier.first_name or verifier.username},\n\n"
@@ -30,11 +32,11 @@ def send_verification_request(service_hour):
         f"{service_hour.hours} service hour(s) on {service_hour.date_performed} "
         f"and requested your verification.\n\n"
         f"Description: {service_hour.description}\n\n"
-        f"Please log in to the AOF Service app to confirm these hours.\n"
+        f"Please log in to {app_url} to confirm these hours.\n"
     )
 
     try:
-        send_mail(subject, message, None, [verifier.email], fail_silently=False)
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [verifier.email], fail_silently=False)
         return True
     except Exception:
         logger.exception(
