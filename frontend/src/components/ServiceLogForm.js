@@ -105,9 +105,31 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
             return;
         }
 
+        const numaricHours = Number(hours)
+
+        if (numaricHours >= 1000){
+            const confirmed = window.confirm(
+                "Wow, that is a lot of hours you're trying to add. Are you sure you didn't add a zero... or three?"
+            );
+
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        else if (numaricHours >= 100){
+            const confirmed = window.confirm(
+                `You're trying to add ${numaricHours} hours at once. Are you sure you want to submit that?`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+        }
+
         const payload = {
             description: description.trim(),
-            hours: parseFloat(hours),
+            hours: numaricHours,
             date_performed: new Date().toISOString().slice(0, 10),
             ...(staffUser && selectedStudent
                 ? { student: parseInt(selectedStudent, 10) }
@@ -122,7 +144,12 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
 
         try {
             const result = await createServiceLog(payload);
-            setFeedback({ type: 'success', message: 'Your service hours were submitted successfully.' });
+            if (numaricHours == 67){
+                setFeedback({ type: 'success', message: 'sure buddy'});
+            }
+            else{
+                setFeedback({ type: 'success', message: 'Your service hours were submitted successfully.' });
+            }
             setSelectedTeacher('');
             setSelectedStudent('');
             setDescription('');
