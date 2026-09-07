@@ -117,7 +117,9 @@ CORS_ALLOW_CREDENTIALS = True
 # ---------------------------------------------------------------------------
 if os.environ.get('EMAIL_BACKEND_MODE', 'console') == 'smtp':
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'email-smtp.us-east-1.amazonaws.com')
+    # Our SES identity lives in us-east-2 (Ohio). The endpoint is region
+    # specific: credentials from one region are rejected by another.
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'email-smtp.us-east-2.amazonaws.com')
     EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
@@ -126,3 +128,15 @@ else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'AOF Service App <no-reply@avonoldfarms.com>')
+
+# Public address of the frontend that verification emails point faculty to.
+# settings/testing.py and settings/production.py each override the default so
+# an email never sends a teacher to the wrong deployment; set the env var to
+# override again (e.g. when production moves to service.avonoldfarms.com).
+SERVICE_HOUR_APP_URL = os.environ.get('SERVICE_HOUR_APP_URL', 'http://localhost:3000')
+
+# Safety valve for non-production deployments. When set, EVERY outgoing message
+# is delivered to this address instead of the real recipient, so students
+# exercising the verification flow on the testing site cannot email faculty
+# about hours that do not exist. Leave unset in production.
+EMAIL_TEST_REDIRECT_TO = os.environ.get('EMAIL_TEST_REDIRECT_TO', '').strip()
