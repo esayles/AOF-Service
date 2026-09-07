@@ -43,7 +43,11 @@ function ProfilePage() {
   }, []);
 
   const summary = getStudentSummary(serviceLogs);
-  const { visibleRows, rowLimitControl } = useTableRowLimit(serviceLogs);
+  const orderedServiceLogs = [...serviceLogs].sort((a, b) => {
+    const dateDifference = new Date(b.date_performed) - new Date(a.date_performed);
+    return dateDifference || b.id - a.id;
+  });
+  const { visibleRows, rowLimitControl } = useTableRowLimit(orderedServiceLogs);
 
 // Render the profile page, including the summary of service logs and a table of logged activities.
   return (
