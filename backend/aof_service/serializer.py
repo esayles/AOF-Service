@@ -22,6 +22,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField(read_only=True)
     confirmed_by = serializers.PrimaryKeyRelatedField(read_only=True)
     confirmed_at = serializers.DateTimeField(read_only=True)
+    status = serializers.ChoiceField(choices=ServiceHour.STATUS_CHOICES, read_only=True)
     request_verifier = serializers.PrimaryKeyRelatedField(
         required=False,
         allow_null=True,
@@ -39,6 +40,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             "date_performed",
             "confirmed_by",
             "confirmed_at",
+            "status",
             "request_verifier",
         ]
 

@@ -54,7 +54,7 @@ function LoginPage() {
       <div className="portal-surface">
       <p className="page-eyebrow">AOF Service</p>
       <h2 className="page-heading">Sign in</h2>
-      <p className="page-description">Sign in with your school Google account.</p>
+      <p className="page-description">Sign in with your AOF-issued Google account.</p>
 
       <div className="mt-3">
         {/*The call to the google o Auth*/}

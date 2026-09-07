@@ -4,6 +4,9 @@ export function getStudentSummary(serviceLogs = []) {
   const normalizedLogs = Array.isArray(serviceLogs) ? serviceLogs : [];
 
   const filteredLogs = normalizedLogs.filter((log) => {
+    if (log.status === 'declined') {
+      return false;
+    }
     const hasStudentRef = Boolean(log.student || log.student_id || log.student_name || log.student_username || log.student_email);
     if (!hasStudentRef) {
       return true;

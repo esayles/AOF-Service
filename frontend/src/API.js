@@ -50,17 +50,12 @@ export const updateServiceLog = async (id, logData) => {
   return readResponse(response, 'Unable to update this service log.');
 };
 
-// Declining a pending submission removes it through the existing service-log
-// endpoint; this does not require storing an additional status.
+// Declining retains the submission in the student's history with a declined status.
 export const declineServiceLog = async (id) => {
-  const response = await fetch(`${API_URL}/api/service-logs/${id}/`, {
-    method: 'DELETE',
+  const response = await fetch(`${API_URL}/api/service-logs/${id}/decline/`, {
+    method: 'POST',
     headers: getAuthHeaders(),
   });
-
-  if (response.status === 204) {
-    return;
-  }
   return readResponse(response, 'Unable to decline this submission.');
 };
 

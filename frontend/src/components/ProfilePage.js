@@ -95,7 +95,9 @@ function ProfilePage() {
                             <td>{log.hours}</td>
                             <td>{log.date_performed}</td>
                             <td>
-                              {(log.confirmed_by ?? log.approved_by) ? (
+                              {log.status === 'declined' ? (
+                                <Badge bg="danger">Declined</Badge>
+                              ) : (log.confirmed_by ?? log.approved_by) ? (
                                 <Badge bg="success">Approved</Badge>
                               ) : (
                                 <Badge bg="warning" text="dark">Pending</Badge>

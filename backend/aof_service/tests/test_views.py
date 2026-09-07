@@ -216,10 +216,13 @@ class ServiceHourViewTests(TestCase):
         )
         self.client.force_authenticate(user=self.faculty_user)
 
-        res = self.client.delete(f"/api/service-logs/{service_hour.pk}/")
+        res = self.client.post(f"/api/service-logs/{service_hour.pk}/decline/")
 
-        self.assertEqual(res.status_code, 204, res.content)
-        self.assertFalse(ServiceHour.objects.filter(pk=service_hour.pk).exists())
+        self.assertEqual(res.status_code, 200, res.content)
+        service_hour.refresh_from_db()
+        self.assertEqual(service_hour.status, ServiceHour.DECLINED)
+        self.assertTrue(ServiceHour.objects.filter(pk=service_hour.pk).exists())
+        self.assertEqual(res.data["status"], ServiceHour.DECLINED)
 
     def test_student_cannot_edit_confirmed_service_hours(self):
         service_hour = ServiceHour.objects.create(
@@ -292,6 +295,24 @@ class LeaderboardViewTests(TestCase):
         self.assertEqual(len(res.data), 10)
         # top should be the student with 12 hours
         self.assertEqual(res.data[0]["username"], "stu_12")
+
+    def test_declined_hours_are_excluded_from_leaderboard(self):
+        user = User.objects.create_user(username="declined_student", password="pass", email="declined@example.com")
+        profile = StudentProfile.objects.create(user=user, year_in_school=StudentProfile.FRESHMAN)
+        ServiceHour.objects.create(
+            student=profile,
+            description="Declined hours",
+            hours=Decimal("5.00"),
+            date_performed=date.today(),
+            status=ServiceHour.DECLINED,
+        )
+
+        self.client.force_authenticate(user=self.viewer)
+        res = self.client.get("/api/leaderboard/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        declined_student = next(row for row in res.data if row["username"] == "declined_student")
+        self.assertEqual(declined_student["total_hours"], "0.00")
 
 
 class AdminUserManagementTests(TestCase):
