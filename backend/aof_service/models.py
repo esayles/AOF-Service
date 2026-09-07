@@ -23,7 +23,10 @@ class User(AbstractUser):
     ]
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=STUDENT)
-    auto_approve_service_hours = models.BooleanField(default=True)
+    # Admins opt in to auto-approving the hours they enter themselves. Off by
+    # default so a new administrator never silently self-approves before
+    # deciding they want that; the toggle lives in the admin panel.
+    auto_approve_service_hours = models.BooleanField(default=False)
     
     GOOGLE = "google"
     AUTH_PROVIDER_CHOICES = [

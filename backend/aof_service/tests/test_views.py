@@ -140,12 +140,15 @@ class ServiceHourViewTests(TestCase):
         self.assertIsNotNone(service_hour.confirmed_at)
 
     def test_admin_created_service_hours_remain_pending(self):
+        # auto_approve_service_hours is off by default, so a new administrator
+        # never self-approves until they deliberately turn the toggle on.
         admin_user = User.objects.create_user(
             username="admin2",
             password="pass",
             email="admin2@example.com",
             role=User.ADMIN,
         )
+        self.assertFalse(admin_user.auto_approve_service_hours)
         self.client.force_authenticate(user=admin_user)
 
         res = self.client.post("/api/service-logs/", {
@@ -159,6 +162,28 @@ class ServiceHourViewTests(TestCase):
         service_hour = ServiceHour.objects.get(pk=res.data["id"])
         self.assertIsNone(service_hour.confirmed_by)
         self.assertIsNone(service_hour.confirmed_at)
+
+    def test_admin_who_opted_in_auto_approves_own_entries(self):
+        admin_user = User.objects.create_user(
+            username="admin3",
+            password="pass",
+            email="admin3@example.com",
+            role=User.ADMIN,
+            auto_approve_service_hours=True,
+        )
+        self.client.force_authenticate(user=admin_user)
+
+        res = self.client.post("/api/service-logs/", {
+            "student": self.student_profile.pk,
+            "description": "Admin submission with auto-approve enabled",
+            "hours": "1.00",
+            "date_performed": date.today().isoformat(),
+        }, format="json")
+
+        self.assertEqual(res.status_code, 201, res.content)
+        service_hour = ServiceHour.objects.get(pk=res.data["id"])
+        self.assertEqual(service_hour.confirmed_by, admin_user)
+        self.assertIsNotNone(service_hour.confirmed_at)
 
     def test_faculty_can_edit_a_student_service_log(self):
         service_hour = ServiceHour.objects.create(
