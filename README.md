@@ -102,8 +102,13 @@ print("ACCESS TOKEN:", str(access_token))
 >if you load your token into local storage, make sure that you name it "access"
 
 
-## Active Changes:
+## Road Map / active changes:
 
 - Admin Debug menu --> Working
-- Declined requests Changes
-- Fix approval email bug (Sayles)
+- Declined requests Changes ✅
+- Fix approval email bug (Sayles) ✅
+- Add public student profiles (leaderboard as links)
+- Give Admins the ability to search for student profiles
+- Add some sort of activity tracker for admins (Might just be on each profile
+- Add tracker to profile / dashboard that shows how close to a mile stone the student is.
+- Notify admins when a student reaches a certain mile stone.
