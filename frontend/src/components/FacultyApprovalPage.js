@@ -64,7 +64,7 @@ function FacultyApprovalPage() {
   };
 
   const handleDecline = async (id) => {
-    if (!window.confirm('Decline this submission? It will be permanently removed.')) {
+    if (!window.confirm('Decline this submission? It will remain visible to the student as declined.')) {
       return;
     }
 
@@ -133,10 +133,11 @@ function FacultyApprovalPage() {
   };
 
   const pendingFirstLogs = [...logs].sort((a, b) => {
-    // Confirmed submissions are retained for reference, but pending requests
+    // Confirmed and declined submissions are retained for reference, but pending requests
     // must stay at the top so faculty can act on them first.
-    const confirmationOrder = Number(Boolean(a.confirmed_by)) - Number(Boolean(b.confirmed_by));
-    if (confirmationOrder) return confirmationOrder;
+    const statusOrder = { pending: 0, confirmed: 1, declined: 2 };
+    const statusDifference = (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0);
+    if (statusDifference) return statusDifference;
     const dateOrder = new Date(b.date_performed) - new Date(a.date_performed);
     return dateOrder || b.id - a.id;
   });
@@ -222,10 +223,10 @@ function FacultyApprovalPage() {
                     <td>{log.description}</td>
                     <td>{log.hours}</td>
                     <td>{log.date_performed}</td>
-                    <td>{log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
+                    <td>{log.status === 'declined' ? <Badge bg="danger">Declined</Badge> : log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
                     <td>
-                      {!log.confirmed_by && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
-                      {!log.confirmed_by && <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
+                      {!log.confirmed_by && log.status !== 'declined' && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                      {!log.confirmed_by && log.status !== 'declined' && <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
                       <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
                     </td>
                   </tr>

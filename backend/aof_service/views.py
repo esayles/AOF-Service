@@ -59,22 +59,22 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         service_hour = serializer.save()
         user = self.request.user
-        #adds togel for admins and makes Faculty always auto approve
         should_auto_approve = (
             user.role == User.FACULTY
             or (
                 user.role == User.ADMIN
                 and user.auto_approve_service_hours
             )
-        )   
+        )
 
         if should_auto_approve:
-            # A staff member entering hours directly is a viable verifier, so the
-            # log is immediately confirmed instead of creating another pending approval.
-            service_hour.confirmed_by = self.request.user
+            # A staff member entering hours directly is a viable verifier, so
+            # the log is immediately confirmed instead of creating another
+            # pending approval.
+            service_hour.confirmed_by = user
             service_hour.confirmed_at = timezone.now()
-            service_hour.save(update_fields=["confirmed_by", "confirmed_at"])
-
+            service_hour.status = ServiceHour.CONFIRMED
+            service_hour.save(update_fields=["confirmed_by", "confirmed_at", "status"])
         elif user.role == User.STUDENT:
             # Notify the requested verifier.
             send_verification_request(service_hour)
@@ -100,6 +100,8 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=("post",), url_path="confirm", permission_classes=(IsAuthenticated, IsFacultyOrAdminPermission))
     def confirm(self, request, pk=None):
         obj = self.get_object()
+        if obj.status == ServiceHour.DECLINED:
+            raise ValidationError({"detail": "This service log has been declined."})
         if obj.confirmed_by_id:
             raise ValidationError({"detail": "This service log has already been confirmed."})
         if (
@@ -110,10 +112,30 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Only the requested verifier or an administrator can confirm this log.")
         obj.confirmed_by = request.user
         obj.confirmed_at = timezone.now()
-        obj.save()
+        obj.status = ServiceHour.CONFIRMED
+        obj.save(update_fields=["confirmed_by", "confirmed_at", "status"])
 
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
+
+    @action(detail=True, methods=("post",), url_path="decline", permission_classes=(IsAuthenticated, IsFacultyOrAdminPermission))
+    def decline(self, request, pk=None):
+        """Keep a declined submission for the student's history, without its hours."""
+        obj = self.get_object()
+        if obj.status == ServiceHour.DECLINED:
+            raise ValidationError({"detail": "This service log has already been declined."})
+        if obj.confirmed_by_id:
+            raise ValidationError({"detail": "Confirmed service logs cannot be declined."})
+        if (
+            obj.request_verifier_id
+            and obj.request_verifier_id != request.user.id
+            and request.user.role != User.ADMIN
+        ):
+            raise PermissionDenied("Only the requested verifier or an administrator can decline this log.")
+
+        obj.status = ServiceHour.DECLINED
+        obj.save(update_fields=["status"])
+        return Response(self.get_serializer(obj).data)
     
     # A method that allows students to retrieve their own service logs.
     @action(detail=False, methods=("get",), url_path="mine")

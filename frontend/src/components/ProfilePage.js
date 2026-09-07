@@ -180,8 +180,47 @@ function ProfilePage() {
                       </>
                     )}
                   </div>
-                </>
-              )}
+                </div>
+              </div>
+
+              <div className="section-card">
+                <h5 className="mb-3">Activity Log</h5>
+                {serviceLogs.length === 0 ? (
+                  <p className="text-muted mb-0">No activities logged yet.</p>
+                ) : (
+                  <>
+                    <Table responsive hover size="sm" className="mb-0">
+                      <thead>
+                        <tr>
+                          <th>Description</th>
+                          <th>Hours</th>
+                          <th>Date</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleRows.map((log) => (
+                          <tr key={log.id}>
+                            <td>{log.description}</td>
+                            <td>{log.hours}</td>
+                            <td>{log.date_performed}</td>
+                            <td>
+                              {log.status === 'declined' ? (
+                                <Badge bg="danger">Declined</Badge>
+                              ) : (log.confirmed_by ?? log.approved_by) ? (
+                                <Badge bg="success">Approved</Badge>
+                              ) : (
+                                <Badge bg="warning" text="dark">Pending</Badge>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                    {rowLimitControl}
+                  </>
+                )}
+              </div>
             </>
           )}
           {activeTab === 'secret' && secretUnlocked && (
