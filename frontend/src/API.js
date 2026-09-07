@@ -145,8 +145,23 @@ const getUploadAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-async function readResponse(response, fallbackMessage) {
-  const data = await response.json().catch(() => ({}));
+export async function readResponse(response, fallbackMessage) {
+  const body = await response.text();
+
+  let data;
+  try {
+    data = body ? JSON.parse(body) : {};
+  } catch {
+    // The backend sent something that is not JSON — nearly always an HTML
+    // error page from an unhandled exception. Report the status instead of
+    // letting a raw "JSON.parse: unexpected character" reach the user, which
+    // hides the fact that the server is the thing that broke.
+    throw new Error(
+      `${fallbackMessage} The server returned ${response.status} ${response.statusText}` +
+      ' instead of data — check the backend logs.'
+    );
+  }
+
   if (response.ok) {
     return data;
   }

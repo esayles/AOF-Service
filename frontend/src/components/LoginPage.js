@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
-import { API_URL } from "../API";
+import { API_URL, readResponse } from "../API";
 import { setAuthTokens } from "../auth/auth";
 
 function LoginPage() {
@@ -27,11 +27,9 @@ function LoginPage() {
         }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Google login failed");
-      }
+      // readResponse reports the HTTP status when the backend returns an error
+      // page rather than JSON, instead of failing with a parser error.
+      const data = await readResponse(response, "Google login failed.");
 
       console.log("Logged in user:", data.user);
       setAuthTokens({ access: data.access, refresh: data.refresh }, data.user);
