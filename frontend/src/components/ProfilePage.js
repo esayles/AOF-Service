@@ -6,6 +6,33 @@ import { getMyServiceLogs } from '../API';
 import { getStudentSummary } from './dashboardUtils';
 import { useTableRowLimit } from './TableRowLimit';
 
+function MilestoneProgress({ hours, goal, label, colorClass }) {
+  const safeHours = Number(hours) || 0;
+  const percentage = Math.min(
+    Math.round((safeHours / goal) * 100),
+    100
+  );
+
+  return (
+    <div className="milestone-item">
+      <div
+        className={`milestone-circle ${colorClass}`}
+        style={{ '--progress': `${percentage}%` }}
+      >
+        <div className="milestone-circle-inner">
+          <strong>{percentage}%</strong>
+        </div>
+      </div>
+
+      <div className="milestone-label">{label}</div>
+      <div className="milestone-hours">
+        {Math.min(safeHours, goal)} / {goal} hours
+      </div>
+    </div>
+  );
+}
+
+
 function ProfilePage() {
   const [serviceLogs, setServiceLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +75,14 @@ function ProfilePage() {
     return dateDifference || b.id - a.id;
   });
   const { visibleRows, rowLimitControl } = useTableRowLimit(orderedServiceLogs);
+
+  const approvedHours = serviceLogs
+  .filter((log) => {
+    const confirmedBy = log.confirmed_by ?? log.approved_by;
+
+    return log.status !== 'declined' && confirmedBy;
+  })
+  .reduce((sum, log) => sum + Number(log.hours || 0), 0);
 
 // Render the profile page, including the summary of service logs and a table of logged activities.
   return (
@@ -138,6 +173,26 @@ function ProfilePage() {
                             : 'No entries yet'}
                         </strong>
                       </div>
+                    </div>
+                  </div>
+                  
+                  <div className="section-card milestone-section mb-4">
+                    <h5 className="mb-4">Milestones</h5>
+
+                    <div className="milestone-container">
+                      <MilestoneProgress
+                        hours={approvedHours}
+                        goal={30}
+                        label="30 Hour Milestone"
+                        colorClass="milestone-blue"
+                      />
+
+                      <MilestoneProgress
+                        hours={approvedHours}
+                        goal={100}
+                        label="100 Hour Milestone"
+                        colorClass="milestone-red"
+                      />
                     </div>
                   </div>
 
