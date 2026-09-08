@@ -7,6 +7,7 @@ import StudentDashboard from './components/StudentDashboard';
 import ProfilePage from './components/ProfilePage';
 import FacultyApprovalPage from './components/FacultyApprovalPage';
 import AdminPortal from './components/AdminPortal';
+import AdminStudentProfilePage from './components/AdminStudentProfilePage';
 import LoginPage from "./components/LoginPage";
 import { isAdmin, isAuthenticated, isFacultyOrAdmin } from './auth/auth';
 
@@ -102,6 +103,15 @@ function App() {
           element={
             <AdminRoute>
               <AdminPortal />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/students/:userId"
+          element={
+            <AdminRoute>
+              <AdminStudentProfilePage />
             </AdminRoute>
           }
         />

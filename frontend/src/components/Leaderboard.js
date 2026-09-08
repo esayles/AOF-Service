@@ -1,12 +1,16 @@
 import React from "react";
 import {Table, Card, Container} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { fetchLeaderboard } from "../Services/LeaderboardService";
+import { isAdmin } from "../auth/auth";
 
 function Leaderboard() {
     const [students, setStudents] = React.useState([]); // State to store the leaderboard data, initialized as an empty array
     const [loading, setLoading] = React.useState(true); // State to track loading status, initialized as true
     const [error, setError] = React.useState(null); // State to store any error messages, initialized as null
     const [hoveredRow, setHoveredRow] = React.useState(null);
+    const navigate = useNavigate();
+    const canViewProfiles = isAdmin();
    
     React.useEffect(() => {
         async function loadLeaderboard() {
@@ -30,7 +34,7 @@ function Leaderboard() {
         const base = {
           fontWeight: index < 3 ? "bold" : "normal",
           transition: "all 0.2s ease-in-out",
-          cursor: "pointer",
+          cursor: canViewProfiles ? "pointer" : "default",
         };
       
         // default (non-top 3 rows)
@@ -110,6 +114,15 @@ function Leaderboard() {
                                     style={getRowStyle(index, true)}
                                     onMouseEnter={() => setHoveredRow(index)}
                                     onMouseLeave={() => setHoveredRow(null)}
+                                    onClick={canViewProfiles ? () => navigate(`/admin/students/${student.user_id}`) : undefined}
+                                    onKeyDown={canViewProfiles ? (event) => {
+                                      if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        navigate(`/admin/students/${student.user_id}`);
+                                      }
+                                    } : undefined}
+                                    role={canViewProfiles ? "link" : undefined}
+                                    tabIndex={canViewProfiles ? 0 : undefined}
                                 >
                                     <td style={getRowStyle(index, hoveredRow === index)}>{index + 1}</td>
                                     <td style={getRowStyle(index, hoveredRow === index)}>{student.first_name} {student.last_name}</td>

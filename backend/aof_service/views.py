@@ -198,6 +198,26 @@ class AdminUserListView(APIView):
         users = User.objects.order_by("last_name", "first_name", "email")
         return Response(UserManagementSerializer(users, many=True).data)
 
+class AdminStudentProfileView(APIView):
+    """Return one student's activity history for administrators."""
+
+    permission_classes = [IsAuthenticated, IsAdminPermission]
+
+    def get(self, request, user_id):
+        profile = get_object_or_404(
+            StudentProfile.objects.select_related("user"),
+            user_id=user_id,
+            user__role=User.STUDENT,
+        )
+        logs = ServiceHour.objects.filter(student=profile).select_related(
+            "student__user", "confirmed_by", "request_verifier"
+        ).order_by("-date_performed", "-id")
+        return Response({
+            "student": StudentProfileSerializer(profile).data,
+            "service_logs": ServiceHourSerializer(logs, many=True).data,
+        })
+
+
 class AdminPreferencesView(APIView):
     permission_classes = [IsAuthenticated, IsAdminPermission]
 

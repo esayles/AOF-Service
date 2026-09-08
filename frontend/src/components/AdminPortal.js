@@ -6,6 +6,7 @@ Users not included in the CSV will be kept.
 
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Spinner, Tab, Table, Tabs } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import {
   deleteAdminUser,
   getAdminUsers,
@@ -17,6 +18,7 @@ import {
 import { useTableRowLimit } from './TableRowLimit';
 
 function AdminPortal() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -199,7 +201,19 @@ function AdminPortal() {
                   <tbody>
                     {visibleRows.map((user) => (
                       <tr key={user.id}>
-                        <td>{`${user.first_name} ${user.last_name}`.trim() || '—'}</td>
+                        <td>
+                          {user.role === 'student' ? (
+                            <Button
+                              variant="link"
+                              className="p-0 text-start"
+                              onClick={() => navigate(`/admin/students/${user.id}`)}
+                            >
+                              {`${user.first_name} ${user.last_name}`.trim() || user.email}
+                            </Button>
+                          ) : (
+                            `${user.first_name} ${user.last_name}`.trim() || '—'
+                          )}
+                        </td>
                         <td>{user.email}</td>
                         <td>
                           <select
