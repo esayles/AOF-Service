@@ -343,6 +343,31 @@ class AdminUserManagementTests(TestCase):
         self.assertEqual(self.client.get("/api/admin/users/").status_code, 403)
         self.assertEqual(self.upload_csv("First Name,Last Name,Email 1,Roles\nNew,User,new@example.com,Student\n").status_code, 403)
 
+    def test_admin_can_view_a_students_profile_and_activity_log(self):
+        profile = StudentProfile.objects.create(user=self.student)
+        service_hour = ServiceHour.objects.create(
+            student=profile,
+            description="Library volunteer",
+            hours=Decimal("2.00"),
+            date_performed=date.today(),
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        res = self.client.get(f"/api/admin/students/{self.student.pk}/profile/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.data["student"]["user_id"], self.student.pk)
+        self.assertEqual(res.data["service_logs"][0]["id"], service_hour.pk)
+
+    def test_non_admin_cannot_view_a_students_profile(self):
+        StudentProfile.objects.create(user=self.student)
+        self.client.force_authenticate(user=self.student)
+
+        self.assertEqual(
+            self.client.get(f"/api/admin/students/{self.student.pk}/profile/").status_code,
+            403,
+        )
+
     def test_admin_can_import_and_update_users_from_school_csv(self):
         existing = User.objects.create_user(
             username="existing@example.com",

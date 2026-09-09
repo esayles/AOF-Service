@@ -66,6 +66,13 @@ export const getAdminUsers = async () => {
   return readResponse(response, 'Unable to load users.');
 };
 
+export const getAdminStudentProfile = async (userId) => {
+  const response = await fetch(`${API_URL}/api/admin/students/${userId}/profile/`, {
+    headers: getAuthHeaders(),
+  });
+  return readResponse(response, 'Unable to load this student profile.');
+};
+
 export const importAdminUsers = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
