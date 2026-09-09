@@ -109,6 +109,75 @@ body {
   font-size: 0.875rem;
 }
 
+.milestone-section {
+  text-align: center;
+}
+
+.milestone-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 5rem;
+  flex-wrap: wrap;
+}
+
+.milestone-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.milestone-circle {
+  --milestone-color: var(--aof-blue);
+
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+
+  background: conic-gradient(
+    var(--milestone-color) var(--progress),
+    #e6edf5 var(--progress)
+  );
+}
+
+.milestone-circle-inner {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  background: var(--aof-surface);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.milestone-circle-inner strong {
+  color: var(--aof-ink);
+  font-size: 1.6rem;
+}
+
+.milestone-blue {
+  --milestone-color: #3478c9;
+}
+
+.milestone-red {
+  --milestone-color: #c94343;
+}
+
+.milestone-label {
+  margin-top: 0.5rem;
+  color: var(--aof-navy);
+  font-weight: 700;
+}
+
+.milestone-hours {
+  margin-top: 0.1rem;
+  color: var(--aof-muted);
+  font-size: 0.875rem;
+}
+
 .section-card h5,
 .section-card h3 {
   color: var(--aof-navy);
@@ -127,6 +196,41 @@ body {
   font-size: 0.8rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+.secret-profile-card {
+  position: relative;
+}
+
+.secret-corner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  opacity: 0;
+  z-index: 10;
+}
+
+.secret-corner-top-left {
+  top: 0;
+  left: 0;
+}
+
+.secret-corner-top-right {
+  top: 0;
+  right: 0;
+}
+
+.secret-corner-bottom-left {
+  bottom: 0;
+  left: 0;
+}
+
+.secret-corner-bottom-right {
+  bottom: 0;
+  right: 0;
 }
 
 .form-control:focus,

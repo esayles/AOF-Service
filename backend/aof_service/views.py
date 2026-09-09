@@ -41,12 +41,14 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Students only ever see (and can only modify) their own logs.
 
-        Faculty and admins see everything. Because detail routes go through
-        this queryset too, a student requesting someone else's log gets a 404.
+        Faculty can only access logs that name them as the requested verifier;
+        administrators can access all logs. Detail routes use this queryset as
+        well, so faculty cannot approve, edit, or decline another verifier’s
+        request.
         """
         user = self.request.user
         qs = ServiceHour.objects.select_related(
-            "student__user", "confirmed_by", "declined_by", "request_verifier"
+            "student__user", "confirmed_by", "request_verifier"
         )
         if getattr(user, "role", None) == User.ADMIN:
             return qs
@@ -56,15 +58,25 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         service_hour = serializer.save()
-        is_self_submitted = service_hour.student.user_id == self.request.user.id
-        if self.request.user.role in (User.FACULTY, User.ADMIN) and not is_self_submitted:
-            # A staff member entering hours directly is a viable verifier, so the
-            # log is immediately confirmed instead of creating another pending approval.
-            service_hour.confirmed_by = self.request.user
+        user = self.request.user
+        should_auto_approve = (
+            user.role == User.FACULTY
+            or (
+                user.role == User.ADMIN
+                and user.auto_approve_service_hours
+            )
+        )
+
+        if should_auto_approve:
+            # A staff member entering hours directly is a viable verifier, so
+            # the log is immediately confirmed instead of creating another
+            # pending approval.
+            service_hour.confirmed_by = user
             service_hour.confirmed_at = timezone.now()
-            service_hour.save(update_fields=["confirmed_by", "confirmed_at"])
-        else:
-            # Student and self-submitted admin entries require verification.
+            service_hour.status = ServiceHour.CONFIRMED
+            service_hour.save(update_fields=["confirmed_by", "confirmed_at", "status"])
+        elif user.role == User.STUDENT:
+            # Notify the requested verifier.
             send_verification_request(service_hour)
 
     # A method that allows faculty/admin to update students' service logs.
@@ -88,10 +100,10 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=("post",), url_path="confirm", permission_classes=(IsAuthenticated, IsFacultyOrAdminPermission))
     def confirm(self, request, pk=None):
         obj = self.get_object()
+        if obj.status == ServiceHour.DECLINED:
+            raise ValidationError({"detail": "This service log has been declined."})
         if obj.confirmed_by_id:
             raise ValidationError({"detail": "This service log has already been confirmed."})
-        if obj.declined_by_id:
-            raise ValidationError({"detail": "This service log has already been declined."})
         if (
             obj.request_verifier_id
             and obj.request_verifier_id != request.user.id
@@ -100,20 +112,20 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Only the requested verifier or an administrator can confirm this log.")
         obj.confirmed_by = request.user
         obj.confirmed_at = timezone.now()
-        obj.save()
+        obj.status = ServiceHour.CONFIRMED
+        obj.save(update_fields=["confirmed_by", "confirmed_at", "status"])
 
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
 
-    # A method that allows faculty/admin to decline a pending verification request without deleting it.
     @action(detail=True, methods=("post",), url_path="decline", permission_classes=(IsAuthenticated, IsFacultyOrAdminPermission))
     def decline(self, request, pk=None):
-        """Mark a pending verification request as declined without deleting it."""
+        """Keep a declined submission for the student's history, without its hours."""
         obj = self.get_object()
-        if obj.confirmed_by_id:
-            raise ValidationError({"detail": "This service log has already been confirmed."})
-        if obj.declined_by_id:
+        if obj.status == ServiceHour.DECLINED:
             raise ValidationError({"detail": "This service log has already been declined."})
+        if obj.confirmed_by_id:
+            raise ValidationError({"detail": "Confirmed service logs cannot be declined."})
         if (
             obj.request_verifier_id
             and obj.request_verifier_id != request.user.id
@@ -121,12 +133,9 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         ):
             raise PermissionDenied("Only the requested verifier or an administrator can decline this log.")
 
-        obj.declined_by = request.user
-        obj.declined_at = timezone.now()
-        obj.save(update_fields=["declined_by", "declined_at"])
-
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
+        obj.status = ServiceHour.DECLINED
+        obj.save(update_fields=["status"])
+        return Response(self.get_serializer(obj).data)
     
     # A method that allows students to retrieve their own service logs.
     @action(detail=False, methods=("get",), url_path="mine")
@@ -141,7 +150,7 @@ class LeaderboardView(APIView):
 
     def get(self, request):
         """Return top student profiles ordered by cached_total_hours."""
-        qs = StudentProfile.objects.filter(cached_total_hours__gt=0).order_by("-cached_total_hours")
+        qs = StudentProfile.objects.order_by("-cached_total_hours")[:10]
         serializer = StudentProfileSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -188,6 +197,54 @@ class AdminUserListView(APIView):
     def get(self, request):
         users = User.objects.order_by("last_name", "first_name", "email")
         return Response(UserManagementSerializer(users, many=True).data)
+
+class AdminStudentProfileView(APIView):
+    """Return one student's activity history for administrators."""
+
+    permission_classes = [IsAuthenticated, IsAdminPermission]
+
+    def get(self, request, user_id):
+        profile = get_object_or_404(
+            StudentProfile.objects.select_related("user"),
+            user_id=user_id,
+            user__role=User.STUDENT,
+        )
+        logs = ServiceHour.objects.filter(student=profile).select_related(
+            "student__user", "confirmed_by", "request_verifier"
+        ).order_by("-date_performed", "-id")
+        return Response({
+            "student": StudentProfileSerializer(profile).data,
+            "service_logs": ServiceHourSerializer(logs, many=True).data,
+        })
+
+
+class AdminPreferencesView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminPermission]
+
+    def get(self, request):
+        return Response({
+            "auto_approve_service_hours": request.user.auto_approve_service_hours,
+        })
+
+    def patch(self, request):
+        if "auto_approve_service_hours" not in request.data:
+            raise ValidationError({
+                "auto_approve_service_hours": "This field is required."
+            })
+
+        value = request.data["auto_approve_service_hours"]
+
+        if not isinstance(value, bool):
+            raise ValidationError({
+                "auto_approve_service_hours": "Must be true or false."
+            })
+
+        request.user.auto_approve_service_hours = value
+        request.user.save(update_fields=["auto_approve_service_hours"])
+
+        return Response({
+            "auto_approve_service_hours": request.user.auto_approve_service_hours,
+        })
 
 
 class AdminUserImportView(APIView):

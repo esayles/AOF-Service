@@ -35,6 +35,47 @@ jobs:
           GOOGLE_CLIENT_ID: ci-test-only
           GOOGLE_CLIENT_SECRET: ci-test-only
 
+  # Vercel cannot run this for us: the legacy "builds" array in vercel.json
+  # makes Vercel ignore buildCommand, so a build-time hook never executes.
+  # Applying migrations here instead keeps the testing database in step with
+  # the code on every push to dev, with a log you can read and re-run.
+  migrate-testing-database:
+    runs-on: ubuntu-latest
+    needs: test-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Apply migrations to the testing database
+        env:
+          DB_HOST: ${{ secrets.TESTING_DB_HOST }}
+          DB_NAME: ${{ secrets.TESTING_DB_NAME }}
+          DB_USER: ${{ secrets.TESTING_DB_USER }}
+          DB_PASSWORD: ${{ secrets.TESTING_DB_PASSWORD }}
+          DB_PORT: ${{ secrets.TESTING_DB_PORT }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+        run: |
+          cd backend
+          if [ -z "$DB_HOST" ]; then
+            echo "::warning::TESTING_DB_* secrets are not set, so migrations were not applied."
+            echo "Add TESTING_DB_HOST / TESTING_DB_NAME / TESTING_DB_USER /"
+            echo "TESTING_DB_PASSWORD as repository secrets, copying the values from"
+            echo "the Vercel backend project's environment variables."
+            exit 0
+          fi
+          bash migrate_testing.sh
+
   test-frontend:
     runs-on: ubuntu-latest
     

@@ -4,6 +4,9 @@ export function getStudentSummary(serviceLogs = []) {
   const normalizedLogs = Array.isArray(serviceLogs) ? serviceLogs : [];
 
   const filteredLogs = normalizedLogs.filter((log) => {
+    if (log.status === 'declined') {
+      return false;
+    }
     const hasStudentRef = Boolean(log.student || log.student_id || log.student_name || log.student_username || log.student_email);
     if (!hasStudentRef) {
       return true;
@@ -11,12 +14,10 @@ export function getStudentSummary(serviceLogs = []) {
     return true;
   });
   // Calculate total hours, count of pending approvals, and identify the latest entry based on the date performed.
-  const totalHours = filteredLogs
-    .filter((log) => !log.declined_by)
-    .reduce((sum, log) => sum + Number(log.hours || 0), 0);
+  const totalHours = filteredLogs.reduce((sum, log) => sum + Number(log.hours || 0), 0);
   const pendingCount = filteredLogs.filter((log) => {
     const confirmedBy = log.confirmed_by ?? log.approved_by;
-    return !confirmedBy && !log.declined_by;
+    return !confirmedBy;
   }).length;
   const recentEntries = [...filteredLogs]
     .sort((a, b) => new Date(b.date_performed || 0) - new Date(a.date_performed || 0))

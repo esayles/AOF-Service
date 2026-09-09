@@ -11,16 +11,14 @@ import {
   getStudents,
   updateServiceLog,
 } from '../API';
-
-const today = () => new Date().toISOString().slice(0, 10);
+import { useTableRowLimit } from './TableRowLimit';
 
 const emptyForm = () => ({
   student: '',
   description: '',
   hours: '',
-  date_performed: today(),
+  date_performed: new Date().toISOString().slice(0, 10),
 });
-const MAX_VISIBLE_ROWS = 50;
 
 // The FacultyApprovalPage component fetches pending service logs and allows faculty members to approve them.
 function FacultyApprovalPage() {
@@ -32,7 +30,6 @@ function FacultyApprovalPage() {
   const [actioningId, setActioningId] = useState(null);
   const [editingLog, setEditingLog] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [showAllLogs, setShowAllLogs] = useState(false);
 
   const loadData = async () => {
     try {
@@ -66,12 +63,15 @@ function FacultyApprovalPage() {
     }
   };
 
-  // Handles the decline of a service log by calling the declineServiceLog function and updating the list of logs upon success.
   const handleDecline = async (id) => {
+    if (!window.confirm('Decline this submission? It will remain visible to the student as declined.')) {
+      return;
+    }
+
     try {
       setActioningId(id);
       await declineServiceLog(id);
-      setSuccess('Service hours declined.');
+      setSuccess('Service hour submission declined.');
       await loadData();
     } catch (err) {
       setError(err.message || 'Unable to decline this log.');
@@ -109,7 +109,7 @@ function FacultyApprovalPage() {
         setSuccess('Service log updated.');
       } else {
         await createServiceLog({ ...payload, student: Number(form.student) });
-        setSuccess('Confirmed service hours added for the student.');
+        setSuccess('Service hours added for the student.');
       }
       resetForm();
       await loadData();
@@ -128,23 +128,20 @@ function FacultyApprovalPage() {
       student: String(log.student),
       description: log.description,
       hours: String(log.hours),
-      date_performed: log.date_performed || today(),
+      date_performed: log.date_performed,
     });
   };
 
-  const sortedLogs = [...logs].sort((a, b) => {
-    const statusOrder = (log) => {
-      if (log.confirmed_by) return 2;
-      if (log.declined_by) return 1;
-      return 0;
-    };
-    const statusDifference = statusOrder(a) - statusOrder(b);
+  const pendingFirstLogs = [...logs].sort((a, b) => {
+    // Confirmed and declined submissions are retained for reference, but pending requests
+    // must stay at the top so faculty can act on them first.
+    const statusOrder = { pending: 0, confirmed: 1, declined: 2 };
+    const statusDifference = (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0);
     if (statusDifference) return statusDifference;
     const dateOrder = new Date(b.date_performed) - new Date(a.date_performed);
     return dateOrder || b.id - a.id;
   });
-  const visibleLogs = showAllLogs ? sortedLogs : sortedLogs.slice(0, MAX_VISIBLE_ROWS);
-  const editingStudentIsMissing = editingLog && !students.some((student) => String(student.id) === String(editingLog.student));
+  const { visibleRows, rowLimitControl } = useTableRowLimit(pendingFirstLogs);
 
   return (
     <div className="portal-page container px-0">
@@ -158,7 +155,7 @@ function FacultyApprovalPage() {
 
         <form className="section-card mb-4" onSubmit={handleSubmit}>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="mb-0">{editingLog ? 'Edit Service Log' : 'Add Confirmed Hours'}</h5>
+            <h5 className="mb-0">{editingLog ? 'Edit Service Log' : 'Add Service Hours'}</h5>
             {editingLog && <Button variant="outline-secondary" size="sm" type="button" onClick={resetForm}>Cancel edit</Button>}
           </div>
           <div className="row g-3">
@@ -174,7 +171,6 @@ function FacultyApprovalPage() {
                 required
               >
                 <option value="">Choose a student</option>
-                {editingStudentIsMissing && <option value={editingLog.student}>{editingLog.student_name}</option>}
                 {students.map((student) => (
                   <option key={student.id} value={student.id}>
                     {student.last_name}, {student.first_name} ({student.email})
@@ -196,7 +192,7 @@ function FacultyApprovalPage() {
             </div>
           </div>
           <Button className="mt-3" type="submit" disabled={actioningId === 'new' || Boolean(editingLog && actioningId === editingLog.id)}>
-            {editingLog ? 'Save Changes' : 'Add Confirmed Hours'}
+            {editingLog ? 'Save Changes' : 'Add Service Hours'}
           </Button>
         </form>
 
@@ -209,45 +205,35 @@ function FacultyApprovalPage() {
           <Alert variant="success">No service logs to review.</Alert>
         ) : (
           <>
-          <Table bordered hover responsive>
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Description</th>
-                <th>Hours</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleLogs.map((log) => (
-                <tr key={log.id}>
-                  <td>{log.student_name}</td>
-                  <td>{log.description}</td>
-                  <td>{log.hours}</td>
-                  <td>{log.date_performed}</td>
-                  <td>
-                    {log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : log.declined_by ? <Badge bg="danger">Declined</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}
-                  </td>
-                  <td>
-                    {!log.confirmed_by && !log.declined_by && (
-                      <>
-                        <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Processing...' : 'Approve'}</Button>
-                        <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Processing...' : 'Decline'}</Button>
-                      </>
-                    )}
-                    <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
-                  </td>
+            <Table bordered hover responsive>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Description</th>
+                  <th>Hours</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
-          {!showAllLogs && sortedLogs.length > MAX_VISIBLE_ROWS && (
-            <Button variant="outline-primary" className="mt-3" onClick={() => setShowAllLogs(true)}>
-              View all ({sortedLogs.length})
-            </Button>
-          )}
+              </thead>
+              <tbody>
+                {visibleRows.map((log) => (
+                  <tr key={log.id}>
+                    <td>{log.student_name}</td>
+                    <td>{log.description}</td>
+                    <td>{log.hours}</td>
+                    <td>{log.date_performed}</td>
+                    <td>{log.status === 'declined' ? <Badge bg="danger">Declined</Badge> : log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
+                    <td>
+                      {!log.confirmed_by && log.status !== 'declined' && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                      {!log.confirmed_by && log.status !== 'declined' && <Button className="me-2" size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
+                      <Button size="sm" variant="outline-primary" onClick={() => startEditing(log)}>Edit</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            {rowLimitControl}
           </>
         )}
       </div>

@@ -1,14 +1,16 @@
 import React from "react";
-import {Button, Table, Card, Container} from "react-bootstrap";
+import {Table, Card, Container} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { fetchLeaderboard } from "../Services/LeaderboardService";
+import { isAdmin } from "../auth/auth";
 
 function Leaderboard() {
-    const MAX_VISIBLE_ROWS = 50;
     const [students, setStudents] = React.useState([]); // State to store the leaderboard data, initialized as an empty array
     const [loading, setLoading] = React.useState(true); // State to track loading status, initialized as true
     const [error, setError] = React.useState(null); // State to store any error messages, initialized as null
     const [hoveredRow, setHoveredRow] = React.useState(null);
-    const [showAllStudents, setShowAllStudents] = React.useState(false);
+    const navigate = useNavigate();
+    const canViewProfiles = isAdmin();
    
     React.useEffect(() => {
         async function loadLeaderboard() {
@@ -32,7 +34,7 @@ function Leaderboard() {
         const base = {
           fontWeight: index < 3 ? "bold" : "normal",
           transition: "all 0.2s ease-in-out",
-          cursor: "pointer",
+          cursor: canViewProfiles ? "pointer" : "default",
         };
       
         // default (non-top 3 rows)
@@ -86,7 +88,7 @@ function Leaderboard() {
         return <div className="leaderboard-page text-danger">{error}</div>;
     }
 
-    const visibleStudents = showAllStudents ? students : students.slice(0, MAX_VISIBLE_ROWS);
+    console.log("TOKEN:", localStorage.getItem("access"));
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 
         <Container className="leaderboard-page px-0">
@@ -107,11 +109,20 @@ function Leaderboard() {
                             {/*loops through the student varible and finds the index in the array (location on the leaderboard), 
                             and the student element as a whole. This works because the array is sorted in decending order */}
                             {/*index starts at 0 so add one for accurate ranking*/}
-                            {visibleStudents.map((student, index) => (
+                            {students.map((student, index) => (
                                 <tr key={student.id ?? `${student.first_name}-${student.last_name}-${index}`}
                                     style={getRowStyle(index, true)}
                                     onMouseEnter={() => setHoveredRow(index)}
                                     onMouseLeave={() => setHoveredRow(null)}
+                                    onClick={canViewProfiles ? () => navigate(`/admin/students/${student.user_id}`) : undefined}
+                                    onKeyDown={canViewProfiles ? (event) => {
+                                      if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        navigate(`/admin/students/${student.user_id}`);
+                                      }
+                                    } : undefined}
+                                    role={canViewProfiles ? "link" : undefined}
+                                    tabIndex={canViewProfiles ? 0 : undefined}
                                 >
                                     <td style={getRowStyle(index, hoveredRow === index)}>{index + 1}</td>
                                     <td style={getRowStyle(index, hoveredRow === index)}>{student.first_name} {student.last_name}</td>
@@ -120,11 +131,6 @@ function Leaderboard() {
                             ))}
                         </tbody>
                     </Table>
-                    {!showAllStudents && students.length > MAX_VISIBLE_ROWS && (
-                        <Button variant="outline-primary" size="sm" onClick={() => setShowAllStudents(true)}>
-                            View all ({students.length})
-                        </Button>
-                    )}
                 </Card.Body>
             </Card>
         </Container>

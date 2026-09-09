@@ -6,22 +6,29 @@ Users not included in the CSV will be kept.
 
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Spinner, Tab, Table, Tabs } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import {
   deleteAdminUser,
   getAdminUsers,
+  getAdminPreferences,
   importAdminUsers,
   updateAdminUserRole,
+  updateAdminPreferences,
 } from '../API';
+import { useTableRowLimit } from './TableRowLimit';
 
 function AdminPortal() {
-  const MAX_VISIBLE_ROWS = 50;
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [showAllUsers, setShowAllUsers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [actioningUserId, setActioningUserId] = useState(null);
+  const [autoApproveHours, setAutoApproveHours] = useState(true);
+  const [preferencesLoading, setPreferencesLoading] = useState(true);
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
+  const { visibleRows, rowLimitControl } = useTableRowLimit(users);
 
   const loadUsers = async () => {
     try {
@@ -36,8 +43,23 @@ function AdminPortal() {
     }
   };
 
+  const loadPreferences = async () => {
+    try {
+      setPreferencesLoading(true);
+  
+      const data = await getAdminPreferences();
+  
+      setAutoApproveHours(data.auto_approve_service_hours);
+    } catch (err) {
+      setError(err.message || 'Unable to load admin preferences.');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadUsers();
+    loadPreferences();
   }, []);
 
   const handleUpload = async (event) => {
@@ -80,6 +102,32 @@ function AdminPortal() {
     }
   };
 
+  const handleAutoApproveChange = async (event) => {
+    const newValue = event.target.checked;
+  
+    setError('');
+    setSuccess('');
+    setPreferencesSaving(true);
+  
+    try {
+      const data = await updateAdminPreferences({
+        auto_approve_service_hours: newValue,
+      });
+  
+      setAutoApproveHours(data.auto_approve_service_hours);
+  
+      setSuccess(
+        data.auto_approve_service_hours
+          ? 'Admin-created service hours will now be automatically approved.'
+          : 'Admin-created service hours will now remain pending for testing.'
+      );
+    } catch (err) {
+      setError(err.message || 'Unable to update admin preferences.');
+    } finally {
+      setPreferencesSaving(false);
+    }
+  };
+
   //Method for deleting a user from the program (DELETE request to the backend). This also deletes all service-hour records associated with the user.
   const handleDelete = async (user) => {
     if (!window.confirm(`Remove ${user.email}? This permanently deletes the account and related service-hour records.`)) {
@@ -99,7 +147,6 @@ function AdminPortal() {
       setActioningUserId(null);
     }
   };
-  const visibleUsers = showAllUsers ? users : users.slice(0, MAX_VISIBLE_ROWS);
   
   return (
     <div className="portal-page container px-0">
@@ -141,56 +188,106 @@ function AdminPortal() {
               <div className="text-muted"><Spinner animation="border" size="sm" className="me-2" />Loading users...</div>
             ) : (
               <>
-              <Table responsive hover bordered className="bg-white mb-0">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleUsers.map((user) => (
-                    <tr key={user.id}>
-                      <td>{`${user.first_name} ${user.last_name}`.trim() || '—'}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <select
-                          className="form-select form-select-sm text-capitalize"
-                          value={user.role}
-                          onChange={(event) => handleRoleChange(user, event.target.value)}
-                          disabled={actioningUserId === user.id}
-                          aria-label={`Role for ${user.email}`}
-                        >
-                          <option value="student">Student</option>
-                          <option value="faculty">Faculty</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td>{user.is_active ? 'Active' : 'Inactive'}</td>
-                      <td>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => handleDelete(user)}
-                          disabled={actioningUserId === user.id}
-                        >
-                          {actioningUserId === user.id ? 'Working...' : 'Remove'}
-                        </Button>
-                      </td>
+                <Table responsive hover bordered className="bg-white mb-0">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-              {!showAllUsers && users.length > MAX_VISIBLE_ROWS && (
-                <Button variant="outline-primary" size="sm" className="mt-3" onClick={() => setShowAllUsers(true)}>
-                  View all ({users.length})
-                </Button>
-              )}
+                  </thead>
+                  <tbody>
+                    {visibleRows.map((user) => (
+                      <tr key={user.id}>
+                        <td>
+                          {user.role === 'student' ? (
+                            <Button
+                              variant="link"
+                              className="p-0 text-start"
+                              onClick={() => navigate(`/admin/students/${user.id}`)}
+                            >
+                              {`${user.first_name} ${user.last_name}`.trim() || user.email}
+                            </Button>
+                          ) : (
+                            `${user.first_name} ${user.last_name}`.trim() || '—'
+                          )}
+                        </td>
+                        <td>{user.email}</td>
+                        <td>
+                          <select
+                            className="form-select form-select-sm text-capitalize"
+                            value={user.role}
+                            onChange={(event) => handleRoleChange(user, event.target.value)}
+                            disabled={actioningUserId === user.id}
+                            aria-label={`Role for ${user.email}`}
+                          >
+                            <option value="student">Student</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td>{user.is_active ? 'Active' : 'Inactive'}</td>
+                        <td>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleDelete(user)}
+                            disabled={actioningUserId === user.id}
+                          >
+                            {actioningUserId === user.id ? 'Working...' : 'Remove'}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                {rowLimitControl}
               </>
             )}
+          </Tab>
+
+          <Tab eventKey="testing" title="Testing">
+            <div className="section-card">
+              <h5>Service Hour Testing</h5>
+
+              <p className="text-muted">
+                These settings only affect your administrator account and are intended
+                for testing application behavior.
+              </p>
+
+              {preferencesLoading ? (
+                <div className="d-flex align-items-center gap-2 text-muted">
+                  <Spinner animation="border" size="sm" />
+                  Loading preferences...
+                </div>
+              ) : (
+                <div className="form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="autoApproveHours"
+                    checked={autoApproveHours}
+                    onChange={handleAutoApproveChange}
+                    disabled={preferencesSaving}
+                  />
+
+                  <label
+                    className="form-check-label"
+                    htmlFor="autoApproveHours"
+                  >
+                    Auto-approve service hours I create
+                  </label>
+                </div>
+              )}
+
+              <p className="text-muted mt-2 mb-0">
+                When disabled, service hours you create will remain pending so you can
+                test the approval workflow.
+              </p>
+            </div>
           </Tab>
         </Tabs>
       </div>

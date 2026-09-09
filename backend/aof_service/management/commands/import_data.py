@@ -162,7 +162,7 @@ class Command(BaseCommand):
 
         # UPDATE LEADERBOARD
         for profile in StudentProfile.objects.all():
-            total = profile.service_hours.aggregate(
+            total = profile.service_hours.exclude(status=ServiceHour.DECLINED).aggregate(
                 total=Sum('hours')
             )['total'] or 0
 

@@ -20,7 +20,7 @@ class ServiceHourViewTests(TestCase):
 
         # create faculty user
         self.faculty_user = User.objects.create_user(username="faculty2", password="pass", email="f2@example.com", role=User.FACULTY)
-        self.admin_user = User.objects.create_user(username="admin2", password="pass", email="admin2@example.com", role=User.ADMIN)
+        self.other_faculty_user = User.objects.create_user(username="faculty3", password="pass", email="f3@example.com", role=User.FACULTY)
 
     def test_student_create_without_student_uses_request_user(self):
         self.client.force_authenticate(user=self.student_user)
@@ -95,91 +95,33 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(sh.confirmed_by.pk, self.faculty_user.pk)
         self.assertIsNotNone(sh.confirmed_at)
 
-    def test_faculty_can_decline_servicehour(self):
-        sh = ServiceHour.objects.create(
+    def test_faculty_only_sees_logs_requested_from_them(self):
+        assigned_log = ServiceHour.objects.create(
             student=self.student_profile,
-            description="Not verifiable",
-            hours=2.0,
+            description="Assigned to this faculty member",
+            hours=Decimal("1.00"),
             date_performed=date.today(),
             request_verifier=self.faculty_user,
         )
-
+        ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Assigned to another faculty member",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=self.other_faculty_user,
+        )
+        ServiceHour.objects.create(
+            student=self.student_profile,
+            description="No verifier requested",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+        )
         self.client.force_authenticate(user=self.faculty_user)
-        res = self.client.post(f"/api/service-logs/{sh.pk}/decline/")
+
+        res = self.client.get("/api/service-logs/")
+
         self.assertEqual(res.status_code, 200, res.content)
-
-        sh.refresh_from_db()
-        self.assertEqual(sh.declined_by, self.faculty_user)
-        self.assertIsNotNone(sh.declined_at)
-        self.assertIsNone(sh.confirmed_by)
-
-    def test_declined_servicehour_cannot_be_confirmed(self):
-        sh = ServiceHour.objects.create(
-            student=self.student_profile,
-            description="Previously declined",
-            hours=2.0,
-            date_performed=date.today(),
-            declined_by=self.faculty_user,
-            request_verifier=self.faculty_user,
-        )
-        self.client.force_authenticate(user=self.faculty_user)
-
-        res = self.client.post(f"/api/service-logs/{sh.pk}/confirm/")
-        self.assertEqual(res.status_code, 400, res.content)
-
-    def test_only_requested_verifier_or_admin_can_decline_servicehour(self):
-        other_faculty = User.objects.create_user(
-            username="other-faculty",
-            password="pass",
-            email="other-faculty@example.com",
-            role=User.FACULTY,
-        )
-        sh = ServiceHour.objects.create(
-            student=self.student_profile,
-            description="Requested verification",
-            hours=2.0,
-            date_performed=date.today(),
-            request_verifier=self.faculty_user,
-        )
-        self.client.force_authenticate(user=other_faculty)
-
-        res = self.client.post(f"/api/service-logs/{sh.pk}/decline/")
-        self.assertEqual(res.status_code, 404, res.content)
-
-    def test_faculty_only_sees_requests_addressed_to_them_while_admin_sees_all(self):
-        other_faculty = User.objects.create_user(
-            username="other-faculty-list",
-            password="pass",
-            email="other-faculty-list@example.com",
-            role=User.FACULTY,
-        )
-        requested_for_faculty = ServiceHour.objects.create(
-            student=self.student_profile,
-            description="For this faculty member",
-            hours=1.0,
-            date_performed=date.today(),
-            request_verifier=self.faculty_user,
-        )
-        requested_for_other_faculty = ServiceHour.objects.create(
-            student=self.student_profile,
-            description="For another faculty member",
-            hours=1.0,
-            date_performed=date.today(),
-            request_verifier=other_faculty,
-        )
-
-        self.client.force_authenticate(user=self.faculty_user)
-        faculty_response = self.client.get("/api/service-logs/")
-        self.assertEqual(faculty_response.status_code, 200, faculty_response.content)
-        self.assertEqual([log["id"] for log in faculty_response.data], [requested_for_faculty.pk])
-
-        self.client.force_authenticate(user=self.admin_user)
-        admin_response = self.client.get("/api/service-logs/")
-        self.assertEqual(admin_response.status_code, 200, admin_response.content)
-        self.assertEqual(
-            {log["id"] for log in admin_response.data},
-            {requested_for_faculty.pk, requested_for_other_faculty.pk},
-        )
+        self.assertEqual([log["id"] for log in res.data], [assigned_log.pk])
 
     def test_faculty_can_add_confirmed_hours_for_a_student(self):
         self.client.force_authenticate(user=self.faculty_user)
@@ -197,23 +139,51 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(service_hour.confirmed_by, self.faculty_user)
         self.assertIsNotNone(service_hour.confirmed_at)
 
-    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
-    def test_admin_can_submit_their_own_hours_for_verification(self):
-        self.client.force_authenticate(user=self.admin_user)
+    def test_admin_created_service_hours_remain_pending(self):
+        # auto_approve_service_hours is off by default, so a new administrator
+        # never self-approves until they deliberately turn the toggle on.
+        admin_user = User.objects.create_user(
+            username="admin2",
+            password="pass",
+            email="admin2@example.com",
+            role=User.ADMIN,
+        )
+        self.assertFalse(admin_user.auto_approve_service_hours)
+        self.client.force_authenticate(user=admin_user)
 
         res = self.client.post("/api/service-logs/", {
-            "description": "Administrator volunteer activity",
+            "student": self.student_profile.pk,
+            "description": "Admin test submission",
             "hours": "2.50",
             "date_performed": date.today().isoformat(),
-            "request_verifier": self.faculty_user.pk,
         }, format="json")
 
         self.assertEqual(res.status_code, 201, res.content)
         service_hour = ServiceHour.objects.get(pk=res.data["id"])
-        self.assertEqual(service_hour.student.user, self.admin_user)
-        self.assertEqual(service_hour.request_verifier, self.faculty_user)
         self.assertIsNone(service_hour.confirmed_by)
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertIsNone(service_hour.confirmed_at)
+
+    def test_admin_who_opted_in_auto_approves_own_entries(self):
+        admin_user = User.objects.create_user(
+            username="admin3",
+            password="pass",
+            email="admin3@example.com",
+            role=User.ADMIN,
+            auto_approve_service_hours=True,
+        )
+        self.client.force_authenticate(user=admin_user)
+
+        res = self.client.post("/api/service-logs/", {
+            "student": self.student_profile.pk,
+            "description": "Admin submission with auto-approve enabled",
+            "hours": "1.00",
+            "date_performed": date.today().isoformat(),
+        }, format="json")
+
+        self.assertEqual(res.status_code, 201, res.content)
+        service_hour = ServiceHour.objects.get(pk=res.data["id"])
+        self.assertEqual(service_hour.confirmed_by, admin_user)
+        self.assertIsNotNone(service_hour.confirmed_at)
 
     def test_faculty_can_edit_a_student_service_log(self):
         service_hour = ServiceHour.objects.create(
@@ -235,6 +205,24 @@ class ServiceHourViewTests(TestCase):
         service_hour.refresh_from_db()
         self.assertEqual(service_hour.description, "Corrected description")
         self.assertEqual(service_hour.hours, Decimal("1.50"))
+
+    def test_faculty_can_decline_a_pending_service_log(self):
+        service_hour = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Declined submission",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=self.faculty_user,
+        )
+        self.client.force_authenticate(user=self.faculty_user)
+
+        res = self.client.post(f"/api/service-logs/{service_hour.pk}/decline/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        service_hour.refresh_from_db()
+        self.assertEqual(service_hour.status, ServiceHour.DECLINED)
+        self.assertTrue(ServiceHour.objects.filter(pk=service_hour.pk).exists())
+        self.assertEqual(res.data["status"], ServiceHour.DECLINED)
 
     def test_student_cannot_edit_confirmed_service_hours(self):
         service_hour = ServiceHour.objects.create(
@@ -293,29 +281,7 @@ class LeaderboardViewTests(TestCase):
         totals = [r["total_hours"] for r in res.data]
         self.assertEqual(totals[0], "10.00")
 
-    def test_declined_hours_are_removed_from_leaderboard(self):
-        student = User.objects.create_user(username="declined-student", password="pass", email="declined@example.com")
-        profile = StudentProfile.objects.create(user=student, year_in_school=StudentProfile.FRESHMAN)
-        faculty = User.objects.create_user(
-            username="declining-faculty",
-            password="pass",
-            email="declining@example.com",
-            role=User.FACULTY,
-        )
-        ServiceHour.objects.create(
-            student=profile,
-            description="Declined activity",
-            hours=Decimal("5.00"),
-            date_performed=date.today(),
-            declined_by=faculty,
-        )
-
-        self.client.force_authenticate(user=self.viewer)
-        res = self.client.get("/api/leaderboard/")
-        self.assertEqual(res.status_code, 200, res.content)
-        self.assertNotIn("declined-student", [entry["username"] for entry in res.data])
-
-    def test_leaderboard_returns_all_students_for_client_side_paging(self):
+    def test_leaderboard_limits_to_top_10(self):
         # create 12 students with increasing hours 1..12
         for i in range(1, 13):
             u = User.objects.create_user(username=f"stu_{i}", password="pass", email=f"{i}@example.com")
@@ -325,9 +291,28 @@ class LeaderboardViewTests(TestCase):
         self.client.force_authenticate(user=self.viewer)
         res = self.client.get("/api/leaderboard/")
         self.assertEqual(res.status_code, 200, res.content)
-        self.assertEqual(len(res.data), 12)
+        # should be limited to top 10
+        self.assertEqual(len(res.data), 10)
         # top should be the student with 12 hours
         self.assertEqual(res.data[0]["username"], "stu_12")
+
+    def test_declined_hours_are_excluded_from_leaderboard(self):
+        user = User.objects.create_user(username="declined_student", password="pass", email="declined@example.com")
+        profile = StudentProfile.objects.create(user=user, year_in_school=StudentProfile.FRESHMAN)
+        ServiceHour.objects.create(
+            student=profile,
+            description="Declined hours",
+            hours=Decimal("5.00"),
+            date_performed=date.today(),
+            status=ServiceHour.DECLINED,
+        )
+
+        self.client.force_authenticate(user=self.viewer)
+        res = self.client.get("/api/leaderboard/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        declined_student = next(row for row in res.data if row["username"] == "declined_student")
+        self.assertEqual(declined_student["total_hours"], "0.00")
 
 
 class AdminUserManagementTests(TestCase):
@@ -357,6 +342,31 @@ class AdminUserManagementTests(TestCase):
         self.client.force_authenticate(user=self.student)
         self.assertEqual(self.client.get("/api/admin/users/").status_code, 403)
         self.assertEqual(self.upload_csv("First Name,Last Name,Email 1,Roles\nNew,User,new@example.com,Student\n").status_code, 403)
+
+    def test_admin_can_view_a_students_profile_and_activity_log(self):
+        profile = StudentProfile.objects.create(user=self.student)
+        service_hour = ServiceHour.objects.create(
+            student=profile,
+            description="Library volunteer",
+            hours=Decimal("2.00"),
+            date_performed=date.today(),
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        res = self.client.get(f"/api/admin/students/{self.student.pk}/profile/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.data["student"]["user_id"], self.student.pk)
+        self.assertEqual(res.data["service_logs"][0]["id"], service_hour.pk)
+
+    def test_non_admin_cannot_view_a_students_profile(self):
+        StudentProfile.objects.create(user=self.student)
+        self.client.force_authenticate(user=self.student)
+
+        self.assertEqual(
+            self.client.get(f"/api/admin/students/{self.student.pk}/profile/").status_code,
+            403,
+        )
 
     def test_admin_can_import_and_update_users_from_school_csv(self):
         existing = User.objects.create_user(

@@ -1,7 +1,7 @@
 
 # AOF Service Tracker
 
-## Setup
+we should update this readme
 
 ### 1. Environment Variables
 
@@ -99,6 +99,16 @@ access_token = refresh.access_token
 print("ACCESS TOKEN:", str(access_token))
 ```
 
-#### 4. Store Token Locally
+>if you load your token into local storage, make sure that you name it "access"
 
-Save the access token to local storage with the key name `"access"`.
+
+## Road Map / active changes:
+
+- Admin Debug menu --> Working
+- Declined requests Changes ✅
+- Fix approval email bug (Sayles) ✅
+- Add public student profiles (leaderboard as links)
+- Give Admins the ability to search for student profiles
+- Add some sort of activity tracker for admins (Might just be on each profile
+- Add tracker to profile / dashboard that shows how close to a mile stone the student is.
+- Notify admins when a student reaches a certain mile stone.
