@@ -27,9 +27,16 @@ else:
         }
     }
 
-CORS_ALLOWED_ORIGINS = [
-    os.environ.get('PRODUCTION_FRONTEND_URL', 'https://d1c725l9c1x9og.cloudfront.net'),
-]
+PRODUCTION_FRONTEND_URL = os.environ.get(
+    'PRODUCTION_FRONTEND_URL', 'https://d1c725l9c1x9og.cloudfront.net'
+)
+
+CORS_ALLOWED_ORIGINS = [PRODUCTION_FRONTEND_URL]
+
+# Verification emails must point faculty at the production frontend, not at
+# the Vercel testing site. Follows PRODUCTION_FRONTEND_URL automatically, so
+# the custom-domain cutover only needs that one variable changed.
+SERVICE_HOUR_APP_URL = os.environ.get('SERVICE_HOUR_APP_URL', PRODUCTION_FRONTEND_URL)
 
 # Django's test client uses plain HTTP; redirecting it to HTTPS turns every
 # test response into a 301, so disable the redirect under `manage.py test`.
@@ -40,6 +47,4 @@ SECURE_SSL_REDIRECT = 'test' not in sys.argv
 SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-CSRF_TRUSTED_ORIGINS = [
-    os.environ.get('PRODUCTION_FRONTEND_URL', 'https://d1c725l9c1x9og.cloudfront.net'),
-]
+CSRF_TRUSTED_ORIGINS = [PRODUCTION_FRONTEND_URL]

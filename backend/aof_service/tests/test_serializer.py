@@ -43,6 +43,20 @@ class ServiceHourSerializerTests(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("hours", serializer.errors)
 
+    def test_hours_must_use_quarter_hour_increments(self):
+        data = {
+            "description": "Non-quarter-hour entry",
+            "hours": "1.26",
+            "date_performed": date.today().isoformat(),
+        }
+        request = self.factory.post("/fake-path/")
+        request.user = self.user
+
+        serializer = ServiceHourSerializer(data=data, context={"request": request})
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("hours", serializer.errors)
+
     def test_date_performed_cannot_be_future(self):
         future = date.today() + timedelta(days=1)
         data = {

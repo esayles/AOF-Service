@@ -22,6 +22,7 @@ class GoogleAuthTests(TestCase):
         self.assertIn('access', res.data)
         self.assertIn('refresh', res.data)
         self.assertIn('user', res.data)
+        self.assertEqual(res.data['user']['role'], User.STUDENT)
 
         user = User.objects.get(email='student3@example.com')
         self.assertIsNotNone(user)
