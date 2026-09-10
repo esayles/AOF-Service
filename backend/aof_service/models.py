@@ -106,6 +106,25 @@ class ServiceHour(models.Model):
         return f"{self.student.user.username}: {self.hours} hours"
 
 
+def ensure_student_profile(user):
+    """Return the StudentProfile for a student user, creating it if missing.
+
+    Profiles are normally created when an account is first seen by Google SSO,
+    but accounts can also arrive through the Django admin, a management
+    command, or the CSV import, and an existing faculty/admin account can be
+    demoted to student later on. Any of those leaves a student without the
+    profile every service log needs, so callers use this to fill the gap.
+    Returns None for users who are not students.
+    """
+    if user is None or getattr(user, "pk", None) is None:
+        return None
+    if getattr(user, "role", None) != User.STUDENT:
+        return None
+
+    profile, _ = StudentProfile.objects.get_or_create(user=user)
+    return profile
+
+
 # Helper to recompute cached total for a StudentProfile
 def _recompute_cached_total(student_profile):
     total = student_profile.service_hours.exclude(status=ServiceHour.DECLINED).aggregate(total=Sum("hours"))["total"] or Decimal("0.00")

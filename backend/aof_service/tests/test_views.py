@@ -439,6 +439,24 @@ class AdminUserManagementTests(TestCase):
         self.assertEqual(delete_res.status_code, 204, delete_res.content)
         self.assertFalse(User.objects.filter(pk=target.pk).exists())
 
+    def test_demoting_a_user_to_student_gives_them_a_profile(self):
+        faculty = User.objects.create_user(
+            username="faculty-to-student",
+            password="pass",
+            email="demoted@example.com",
+            role=User.FACULTY,
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        res = self.client.patch(
+            f"/api/admin/users/{faculty.pk}/",
+            {"role": User.STUDENT},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertTrue(StudentProfile.objects.filter(user=faculty).exists())
+
     def test_admin_cannot_delete_or_demote_their_own_account(self):
         self.client.force_authenticate(user=self.admin)
 

@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .emails import send_verification_request
-from .models import ServiceHour, StudentProfile
+from .models import ServiceHour, StudentProfile, ensure_student_profile
 from .serializer import (
     FacultySerializer,
     ServiceHourSerializer,
@@ -377,6 +377,8 @@ class AdminUserDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         self.ensure_admin_remains(user, serializer.validated_data.get("role"))
         serializer.save()
+        # A user demoted to student needs the profile their service logs hang off.
+        ensure_student_profile(user)
         return Response(UserManagementSerializer(user).data)
 
     def delete(self, request, user_id):

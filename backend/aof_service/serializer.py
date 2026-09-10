@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import ServiceHour, StudentProfile
+from .models import ServiceHour, StudentProfile, ensure_student_profile
 
 User = get_user_model()
 
@@ -89,12 +89,15 @@ class ServiceHourSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     "student": "Choose the student whose hours are being recorded."
                 })
-        elif hasattr(user, "student_profile") and user.student_profile is not None:
-            validated_data["student"] = user.student_profile
         else:
-            raise serializers.ValidationError({
-                "student": "Unable to determine student — ensure the authenticated user has a StudentProfile."
-            })
+            # Students log against their own profile, created on demand for
+            # accounts that never got one (see ensure_student_profile).
+            profile = ensure_student_profile(user)
+            if profile is None:
+                raise serializers.ValidationError({
+                    "student": "Unable to determine student — only student accounts can log their own hours."
+                })
+            validated_data["student"] = profile
 
         return super().create(validated_data)
 

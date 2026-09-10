@@ -56,3 +56,23 @@ class GoogleAuthTests(TestCase):
         user = User.objects.get(email='student4@example.com')
         self.assertIsNotNone(user)
         self.assertTrue(hasattr(user, 'student_profile'))
+
+    @patch('aof_service.auth_views.id_token.verify_oauth2_token')
+    def test_google_auth_backfills_profile_for_existing_student(self, mock_verify):
+        """Students who predate profile creation get one when they sign in."""
+        user = User.objects.create_user(
+            username='legacy@example.com',
+            email='legacy@example.com',
+            role=User.STUDENT,
+        )
+        StudentProfile.objects.filter(user=user).delete()
+        mock_verify.return_value = {
+            'email': 'legacy@example.com',
+            'sub': '12345',
+            'email_verified': True,
+        }
+
+        res = self.client.post('/api/auth/google/', {'id_token': 'fake-token'}, format='json')
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertTrue(StudentProfile.objects.filter(user=user).exists())

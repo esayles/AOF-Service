@@ -84,3 +84,26 @@ class ServiceHourSerializerTests(TestCase):
         self.assertTrue(serializer.is_valid(), serializer.errors)
         obj = serializer.save()
         self.assertEqual(obj.student, self.student_profile)
+
+
+    def test_create_makes_a_missing_student_profile(self):
+        """A student account added outside Google SSO can still log hours."""
+        profileless = User.objects.create_user(
+            username="student2", password="pass", email="s2@example.com"
+        )
+        StudentProfile.objects.filter(user=profileless).delete()
+        data = {
+            "description": "First log from a profileless account",
+            "hours": "1.00",
+            "date_performed": date.today().isoformat(),
+        }
+
+        request = self.factory.post("/fake-path/")
+        request.user = profileless
+
+        serializer = ServiceHourSerializer(data=data, context={"request": request})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        obj = serializer.save()
+
+        self.assertEqual(obj.student.user, profileless)
+        self.assertTrue(StudentProfile.objects.filter(user=profileless).exists())
