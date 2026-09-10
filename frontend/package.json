@@ -18,6 +18,9 @@
     "test": "react-scripts test --passWithNoTests",
     "eject": "react-scripts eject"
   },
+  "engines": {
+    "npm": ">=11"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
