@@ -2,6 +2,7 @@ node_modules/
 .next/
 out/
 .env
+/package-lock.json
 # Django
 *.pyc
 __pycache__/
