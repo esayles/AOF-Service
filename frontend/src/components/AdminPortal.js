@@ -16,6 +16,7 @@ import {
   updateAdminPreferences,
 } from '../API';
 import { useTableRowLimit } from './TableRowLimit';
+import AdminStudentSearch from './AdminStudentSearch';
 
 function AdminPortal() {
   const navigate = useNavigate();
@@ -282,12 +283,16 @@ function AdminPortal() {
                   </label>
                 </div>
               )}
-
               <p className="text-muted mt-2 mb-0">
                 When disabled, service hours you create will remain pending so you can
                 test the approval workflow.
               </p>
             </div>
+            <AdminStudentSearch
+                  users={users}
+                  loading={loading}
+                  onRefresh={loadUsers}
+            />
           </Tab>
         </Tabs>
       </div>
