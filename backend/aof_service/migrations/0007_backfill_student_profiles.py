@@ -1,3 +1,6 @@
+"""Recommitted this migration due to merge conflict"""
+
+
 """Give existing student accounts the StudentProfile their service logs need.
 
 Profiles used to be created only when Google SSO first saw an account, so
@@ -12,7 +15,10 @@ def create_missing_student_profiles(apps, schema_editor):
     User = apps.get_model("aof_service", "User")
     StudentProfile = apps.get_model("aof_service", "StudentProfile")
 
-    missing = User.objects.filter(role="student", student_profile__isnull=True)
+    missing = User.objects.filter(
+        role__in=("student", "student_admin"),
+        student_profile__isnull=True,
+    )
     StudentProfile.objects.bulk_create(
         [StudentProfile(user=user) for user in missing]
     )
@@ -21,7 +27,7 @@ def create_missing_student_profiles(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("aof_service", "0005_servicehour_status"),
+        ("aof_service", "0006_alter_user_role"),
     ]
 
     operations = [

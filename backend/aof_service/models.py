@@ -14,15 +14,25 @@ class User(AbstractUser):
     
     STUDENT = "student"
     FACULTY = "faculty"
+    STUDENT_ADMIN = "student_admin"
+    FACULTY_ADMIN = "faculty_admin"
+    # Retained so existing code/data can be migrated without breaking imports.
     ADMIN = "admin"
 
     ROLE_CHOICES = [
         (STUDENT, "Student"),
         (FACULTY, "Faculty"),
-        (ADMIN, "Admin"),
+        (STUDENT_ADMIN, "Student Admin"),
+        (FACULTY_ADMIN, "Faculty Admin"),
+        (ADMIN, "Admin (legacy)"),
     ]
 
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=STUDENT)
+    ADMIN_ROLES = (STUDENT_ADMIN, FACULTY_ADMIN, ADMIN)
+    FACULTY_ROLES = (FACULTY, FACULTY_ADMIN)
+    FACULTY_VERIFIER_ROLES = (FACULTY, FACULTY_ADMIN, ADMIN)
+    STUDENT_ROLES = (STUDENT, STUDENT_ADMIN)
+
+    role = models.CharField(max_length=14, choices=ROLE_CHOICES, default=STUDENT)
     # Admins opt in to auto-approving the hours they enter themselves. Off by
     # default so a new administrator never silently self-approves before
     # deciding they want that; the toggle lives in the admin panel.
@@ -42,6 +52,18 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+
+    @property
+    def is_app_admin(self):
+        return self.role in self.ADMIN_ROLES
+
+    @property
+    def acts_as_faculty(self):
+        return self.role in self.FACULTY_ROLES
+
+    @property
+    def acts_as_student(self):
+        return self.role in self.STUDENT_ROLES
 
 
 class StudentProfile(models.Model):
@@ -118,7 +140,7 @@ def ensure_student_profile(user):
     """
     if user is None or getattr(user, "pk", None) is None:
         return None
-    if getattr(user, "role", None) != User.STUDENT:
+    if getattr(user, "role", None) not in User.STUDENT_ROLES:
         return None
 
     profile, _ = StudentProfile.objects.get_or_create(user=user)

@@ -243,14 +243,128 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(res.status_code, 403, res.content)
 
     def test_students_list_is_staff_only(self):
+        student_admin = User.objects.create_user(
+            username="student-admin-search",
+            password="pass",
+            email="student-admin-search@example.com",
+            role=User.STUDENT_ADMIN,
+        )
+        StudentProfile.objects.create(user=student_admin)
         self.client.force_authenticate(user=self.student_user)
         self.assertEqual(self.client.get("/api/students/").status_code, 403)
 
         self.client.force_authenticate(user=self.faculty_user)
         res = self.client.get("/api/students/")
         self.assertEqual(res.status_code, 200, res.content)
-        self.assertEqual(res.data[0]["id"], self.student_profile.pk)
-        self.assertEqual(res.data[0]["email"], self.student_user.email)
+        result_emails = {student["email"] for student in res.data}
+        self.assertIn(self.student_user.email, result_emails)
+        self.assertIn(student_admin.email, result_emails)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_student_admin_uses_student_logging_flow_and_admin_access(self):
+        student_admin = User.objects.create_user(
+            username="student-admin",
+            password="pass",
+            email="student-admin@example.com",
+            role=User.STUDENT_ADMIN,
+        )
+        student_admin_profile = StudentProfile.objects.create(user=student_admin)
+        self.client.force_authenticate(user=student_admin)
+
+        res = self.client.post("/api/service-logs/", {
+            "description": "Student-admin service",
+            "hours": "1.00",
+            "date_performed": date.today().isoformat(),
+            "request_verifier": self.faculty_user.pk,
+        }, format="json")
+
+        self.assertEqual(res.status_code, 201, res.content)
+        self.assertEqual(ServiceHour.objects.get(pk=res.data["id"]).student, student_admin_profile)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.faculty_user.email])
+        self.assertEqual(self.client.get("/api/admin/users/").status_code, 200)
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_faculty_receives_and_approves_student_admin_request(self):
+        student_admin = User.objects.create_user(
+            username="student-admin-requester",
+            password="pass",
+            email="student-admin-requester@example.com",
+            role=User.STUDENT_ADMIN,
+        )
+        student_admin_profile = StudentProfile.objects.create(user=student_admin)
+        self.client.force_authenticate(user=student_admin)
+
+        res = self.client.post("/api/service-logs/", {
+            "description": "Student-admin request",
+            "hours": "1.00",
+            "date_performed": date.today().isoformat(),
+            "request_verifier": self.faculty_user.pk,
+        }, format="json")
+
+        self.assertEqual(res.status_code, 201, res.content)
+        self.assertEqual(mail.outbox[0].to, [self.faculty_user.email])
+        service_hour = ServiceHour.objects.get(pk=res.data["id"])
+        self.assertEqual(service_hour.student, student_admin_profile)
+
+        self.client.force_authenticate(user=self.faculty_user)
+        approval = self.client.post(f"/api/service-logs/{service_hour.pk}/confirm/")
+
+        self.assertEqual(approval.status_code, 200, approval.content)
+        service_hour.refresh_from_db()
+        self.assertEqual(service_hour.confirmed_by, self.faculty_user)
+
+    def test_faculty_admin_uses_faculty_approval_flow(self):
+        faculty_admin = User.objects.create_user(
+            username="faculty-admin",
+            password="pass",
+            email="faculty-admin@example.com",
+            role=User.FACULTY_ADMIN,
+        )
+        service_hour = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Faculty-admin approval",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=faculty_admin,
+        )
+        self.client.force_authenticate(user=faculty_admin)
+
+        res = self.client.post(f"/api/service-logs/{service_hour.pk}/confirm/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        service_hour.refresh_from_db()
+        self.assertEqual(service_hour.confirmed_by, faculty_admin)
+
+    def test_faculty_admin_only_sees_requests_assigned_to_them(self):
+        faculty_admin = User.objects.create_user(
+            username="faculty-admin-scope",
+            password="pass",
+            email="faculty-admin-scope@example.com",
+            role=User.FACULTY_ADMIN,
+        )
+        assigned = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Assigned request",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=faculty_admin,
+        )
+        unassigned = ServiceHour.objects.create(
+            student=self.student_profile,
+            description="Different faculty request",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+            request_verifier=self.faculty_user,
+        )
+        self.client.force_authenticate(user=faculty_admin)
+
+        response = self.client.get("/api/service-logs/")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual([row["id"] for row in response.data], [assigned.pk])
+
+        forbidden_approval = self.client.post(f"/api/service-logs/{unassigned.pk}/confirm/")
+        self.assertEqual(forbidden_approval.status_code, 404)
 
 class LeaderboardViewTests(TestCase):
     def setUp(self):
@@ -359,6 +473,53 @@ class AdminUserManagementTests(TestCase):
         self.assertEqual(res.data["student"]["user_id"], self.student.pk)
         self.assertEqual(res.data["service_logs"][0]["id"], service_hour.pk)
 
+    def test_admin_can_view_a_student_admin_profile(self):
+        student_admin = User.objects.create_user(
+            username="student-admin-profile",
+            password="pass",
+            email="student-admin-profile@example.com",
+            role=User.STUDENT_ADMIN,
+        )
+        profile = StudentProfile.objects.create(user=student_admin)
+        service_hour = ServiceHour.objects.create(
+            student=profile,
+            description="Student-admin contribution",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+        )
+        self.client.force_authenticate(user=self.admin)
+
+        res = self.client.get(f"/api/admin/students/{student_admin.pk}/profile/")
+
+        self.assertEqual(res.status_code, 200, res.content)
+        self.assertEqual(res.data["student"]["user_id"], student_admin.pk)
+        self.assertEqual(res.data["service_logs"][0]["id"], service_hour.pk)
+
+    def test_admin_activities_lists_school_wide_service_logs(self):
+        student_profile = StudentProfile.objects.create(user=self.student)
+        first = ServiceHour.objects.create(
+            student=student_profile,
+            description="School activity one",
+            hours=Decimal("1.00"),
+            date_performed=date.today(),
+        )
+        second = ServiceHour.objects.create(
+            student=student_profile,
+            description="School activity two",
+            hours=Decimal("2.00"),
+            date_performed=date.today(),
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get("/api/admin/activities/")
+
+        self.assertEqual(response.status_code, 200, response.content)
+        activity_ids = {row["id"] for row in response.data}
+        self.assertTrue({first.pk, second.pk}.issubset(activity_ids))
+
+        self.client.force_authenticate(user=self.student)
+        self.assertEqual(self.client.get("/api/admin/activities/").status_code, 403)
+
     def test_non_admin_cannot_view_a_students_profile(self):
         StudentProfile.objects.create(user=self.student)
         self.client.force_authenticate(user=self.student)
@@ -457,18 +618,38 @@ class AdminUserManagementTests(TestCase):
         self.assertEqual(res.status_code, 200, res.content)
         self.assertTrue(StudentProfile.objects.filter(user=faculty).exists())
 
-    def test_admin_cannot_delete_or_demote_their_own_account(self):
+    def test_admin_can_change_their_own_role_when_another_admin_remains(self):
+        User.objects.create_user(
+            username="second-admin",
+            password="pass",
+            email="second-admin@example.com",
+            role=User.FACULTY_ADMIN,
+        )
         self.client.force_authenticate(user=self.admin)
 
-        self.assertEqual(
-            self.client.patch(
-                f"/api/admin/users/{self.admin.pk}/",
-                {"role": User.FACULTY},
-                format="json",
-            ).status_code,
-            403,
+        update_res = self.client.patch(
+            f"/api/admin/users/{self.admin.pk}/",
+            {"role": User.FACULTY},
+            format="json",
         )
+
+        self.assertEqual(update_res.status_code, 200, update_res.content)
+        self.admin.refresh_from_db()
+        self.assertEqual(self.admin.role, User.FACULTY)
         self.assertEqual(self.client.delete(f"/api/admin/users/{self.admin.pk}/").status_code, 403)
+
+    def test_last_admin_cannot_change_their_own_role(self):
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.patch(
+            f"/api/admin/users/{self.admin.pk}/",
+            {"role": User.STUDENT},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400, response.content)
+        self.admin.refresh_from_db()
+        self.assertIn(self.admin.role, User.ADMIN_ROLES)
 
     def test_invalid_csv_does_not_import_a_partial_set_of_users(self):
         self.client.force_authenticate(user=self.admin)

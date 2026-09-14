@@ -26,7 +26,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     request_verifier = serializers.PrimaryKeyRelatedField(
         required=False,
         allow_null=True,
-        queryset=User.objects.filter(role__in=(User.FACULTY, User.ADMIN)),
+        queryset=User.objects.filter(role__in=User.FACULTY_VERIFIER_ROLES),
     )
 
     class Meta:
@@ -66,7 +66,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         user = getattr(request, "user", None)
-        is_staff_user = getattr(user, "role", None) in (User.FACULTY, User.ADMIN)
+        is_staff_user = getattr(user, "role", None) in User.FACULTY_VERIFIER_ROLES
 
         # Fixes error where a student can choose a different student when creating a ServiceHour obejct.
         if not is_staff_user and "student" in attrs:
@@ -84,7 +84,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             })
 
         user = request.user
-        if getattr(user, "role", None) in (User.FACULTY, User.ADMIN):
+        if getattr(user, "role", None) in User.FACULTY_VERIFIER_ROLES:
             if "student" not in validated_data:
                 raise serializers.ValidationError({
                     "student": "Choose the student whose hours are being recorded."
@@ -100,6 +100,33 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             validated_data["student"] = profile
 
         return super().create(validated_data)
+
+
+class ActivitySerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    verifier_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ServiceHour
+        fields = [
+            "id",
+            "student_name",
+            "description",
+            "hours",
+            "date_performed",
+            "status",
+            "verifier_name",
+        ]
+
+    def get_student_name(self, obj):
+        user = obj.student.user
+        return f"{user.first_name} {user.last_name}".strip() or user.username
+
+    def get_verifier_name(self, obj):
+        if not obj.request_verifier:
+            return ""
+        user = obj.request_verifier
+        return f"{user.first_name} {user.last_name}".strip() or user.username
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):
