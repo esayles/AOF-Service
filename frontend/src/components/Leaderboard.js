@@ -88,7 +88,6 @@ function Leaderboard() {
         return <div className="leaderboard-page text-danger">{error}</div>;
     }
 
-    console.log("TOKEN:", localStorage.getItem("access"));
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 
         <Container className="leaderboard-page px-0">
