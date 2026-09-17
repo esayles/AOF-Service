@@ -15,7 +15,7 @@ class Command(BaseCommand):
             email=email,
             defaults={
                 "username": email,
-                "role": User.ADMIN,
+                "role": User.FACULTY_ADMIN,
             },
         )
 
@@ -28,8 +28,8 @@ class Command(BaseCommand):
                     f"Created admin user: {email}"
                 )
             )
-        elif user.role != User.ADMIN:
-            user.role = User.ADMIN
+        elif user.role not in User.ADMIN_ROLES:
+            user.role = User.FACULTY_ADMIN
             user.save(update_fields=["role"])
 
             self.stdout.write(
