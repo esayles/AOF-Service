@@ -42,6 +42,23 @@ if [ -z "${DB_HOST:-}" ]; then
 fi
 echo "DB_HOST is set -- Postgres path confirmed."
 
+# --- Guard: never migrate the production database -------------------------
+# Testing and production share the service-app-db RDS instance and differ only
+# by database name, so a TESTING_DB_NAME secret holding the production value
+# would point this script -- which runs on every push to dev -- at real student
+# and faculty records. Migration 0006 rewrites every user's role, so that is
+# not a mistake you can notice after the fact. Refuse the production name.
+PRODUCTION_DB_NAME="aofservice"
+if [ "${DB_NAME:-}" = "${PRODUCTION_DB_NAME}" ]; then
+  echo "ERROR: DB_NAME is '${PRODUCTION_DB_NAME}' -- that is the PRODUCTION database."
+  echo "  The testing deployment has its own database on the same instance."
+  echo "  Fix: set the TESTING_DB_NAME repository secret to the testing"
+  echo "  database (aofservice_dev), not the production one. Production"
+  echo "  migrations run from .ebextensions/django.config on deploy to main."
+  exit 1
+fi
+echo "DB_NAME is not the production database -- safe to migrate."
+
 export DJANGO_SETTINGS_MODULE=aof_service.settings.testing
 
 # settings/base.py raises RuntimeError at import time when these are absent.
