@@ -28,13 +28,13 @@ class Command(BaseCommand):
                     f"Created admin user: {email}"
                 )
             )
-        elif user.role not in User.ADMIN_ROLES:
-            user.role = User.FACULTY_ADMIN
+        elif user.role != (role := self.admin_role_for(user)):
+            user.role = role
             user.save(update_fields=["role"])
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Promoted existing user to admin: {email}"
+                    f"Set {email} to {user.role}"
                 )
             )
         else:
@@ -43,3 +43,12 @@ class Command(BaseCommand):
                     f"{email} is already an admin."
                 )
             )
+
+    @staticmethod
+    def admin_role_for(user):
+        # Students on the admin list must stay students: faculty_admin would
+        # stop them logging hours and let them verify other students' hours.
+        # This also corrects students an earlier version made faculty_admin.
+        if user.role in User.STUDENT_ROLES or hasattr(user, "student_profile"):
+            return User.STUDENT_ADMIN
+        return User.FACULTY_ADMIN

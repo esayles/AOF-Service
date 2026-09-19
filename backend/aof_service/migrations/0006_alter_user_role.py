@@ -2,13 +2,18 @@ from django.db import migrations, models
 
 
 def migrate_legacy_admins(apps, schema_editor):
+    # Legacy "admin" covered both kinds of administrator. Students among them
+    # (the ones with a StudentProfile) become student admins so they keep
+    # logging hours and do not gain faculty verification rights.
     User = apps.get_model("aof_service", "User")
-    User.objects.filter(role="admin").update(role="faculty_admin")
+    legacy = User.objects.filter(role="admin")
+    legacy.filter(student_profile__isnull=False).update(role="student_admin")
+    legacy.filter(student_profile__isnull=True).update(role="faculty_admin")
 
 
 def restore_legacy_admins(apps, schema_editor):
     User = apps.get_model("aof_service", "User")
-    User.objects.filter(role="faculty_admin").update(role="admin")
+    User.objects.filter(role__in=("student_admin", "faculty_admin")).update(role="admin")
 
 
 class Migration(migrations.Migration):
