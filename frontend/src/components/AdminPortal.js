@@ -6,7 +6,7 @@ Users not included in the CSV will be kept.
 
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Spinner, Tab, Table, Tabs } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   deleteAdminUser,
   getAdminUsers,
@@ -22,6 +22,7 @@ import AdminStudentSearch from './AdminStudentSearch';
 
 function AdminPortal() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -112,7 +113,7 @@ function AdminPortal() {
       if (String(user.id) === getUserId()) {
         setUserRole(role);
         if (!isAdmin()) {
-          navigate('/dashboard');
+          window.location.assign('/dashboard');
           return;
         }
       }
@@ -182,7 +183,7 @@ function AdminPortal() {
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        <Tabs defaultActiveKey="users" className="mb-3">
+        <Tabs activeKey={searchParams.get('tab') || 'users'} onSelect={(key) => navigate(key === 'users' ? '/admin' : `/admin?tab=${key}`)} className="mb-3">
           <Tab eventKey="users" title="Manage Users">
             <div className="section-card mb-4">
               <h5>Import users from CSV</h5>

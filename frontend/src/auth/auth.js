@@ -111,6 +111,10 @@ export function isAdmin() {
   return ['student_admin', 'faculty_admin', 'admin'].includes(getUserRole());
 }
 
+export function isFacultyAdmin() {
+  return getUserRole() === 'faculty_admin';
+}
+
 // This is a UI convenience only; Django enforces the role for every faculty
 // endpoint as well.
 export function canAccessFacultyApproval() {

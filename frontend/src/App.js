@@ -3,13 +3,13 @@ import ServiceLogForm from './components/ServiceLogForm';
 import MenuBar from './components/MenuBar';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Leaderboard from "./components/Leaderboard";
-import StudentDashboard from './components/StudentDashboard';
+import RoleDashboard from './components/RoleDashboard';
 import ProfilePage from './components/ProfilePage';
 import FacultyApprovalPage from './components/FacultyApprovalPage';
 import AdminPortal from './components/AdminPortal';
 import AdminStudentProfilePage from './components/AdminStudentProfilePage';
 import LoginPage from "./components/LoginPage";
-import { isAdmin, isAuthenticated, isFacultyOrAdmin } from './auth/auth';
+import { isAdmin, isAuthenticated, isFacultyAdmin, isFacultyOrAdmin } from './auth/auth';
 
 
 // Everything inside this layout requires login
@@ -34,7 +34,7 @@ function ProtectedLayout() {
 // Stops logged-in users from going back to the login page
 function LoginRoute() {
   if (isAuthenticated()) {
-    return <Navigate to="/leaderboard" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <LoginPage />;
@@ -66,7 +66,7 @@ function App() {
 
         <Route
           path="/"
-          element={<Navigate to="/leaderboard" replace />}
+          element={<Navigate to="/dashboard" replace />}
         />
 
         <Route
@@ -76,12 +76,12 @@ function App() {
 
         <Route
           path="/log"
-          element={<ServiceLogForm />}
+          element={isFacultyAdmin() ? <Navigate to="/faculty-approval" replace /> : <ServiceLogForm />}
         />
 
         <Route
           path="/dashboard"
-          element={<StudentDashboard />}
+          element={<RoleDashboard />}
         />
 
         <Route
@@ -123,7 +123,7 @@ function App() {
         path="*"
         element={
           <Navigate
-            to={isAuthenticated() ? "/leaderboard" : "/login"}
+            to={isAuthenticated() ? "/dashboard" : "/login"}
             replace
           />
         }
