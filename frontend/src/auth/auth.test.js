@@ -1,4 +1,4 @@
-import { clearAuthTokens, getUserId, getUserRole, isAdmin, isAuthenticated, isFacultyOrAdmin, setAuthTokens, setUserRole } from './auth';
+import { clearAuthTokens, getUserId, getUserRole, isAdmin, isAuthenticated, isFacultyAdmin, isFacultyOrAdmin, setAuthTokens, setUserRole } from './auth';
 
 describe('auth helpers', () => {
   beforeEach(() => {
@@ -45,5 +45,13 @@ describe('auth helpers', () => {
 
     setAuthTokens({ access: 'access-token' }, { role: 'faculty_admin' });
     expect(isFacultyOrAdmin()).toBe(true);
+  });
+
+  test('identifies faculty admins for role-specific navigation', () => {
+    setAuthTokens({ access: 'access-token' }, { role: 'faculty_admin' });
+    expect(isFacultyAdmin()).toBe(true);
+
+    setAuthTokens({ access: 'access-token' }, { role: 'student_admin' });
+    expect(isFacultyAdmin()).toBe(false);
   });
 });
