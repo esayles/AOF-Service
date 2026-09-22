@@ -2,7 +2,7 @@ import React from "react";
 import { Navbar, Nav, Container } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/images/Avon-symbol.png"; // Import the logo image
-import { canAccessFacultyApproval, clearAuthTokens, isAdmin, isAuthenticated, isFacultyAdmin } from "../auth/auth";
+import { canAccessFacultyApproval, clearAuthTokens, isAdmin, isAuthenticated } from "../auth/auth";
 
 //first thing I've written whith bootstrap, only makes sense if you're looking at the sintax
 //the design of the nav bar should change at some point 
@@ -12,7 +12,6 @@ function MenuBar() {
   const authenticated = isAuthenticated();
   const showApproveLink = canAccessFacultyApproval();
   const showAdminLink = isAdmin();
-  const showLogLink = !isFacultyAdmin();
 
   const handleLogout = () => {
     clearAuthTokens();
@@ -35,7 +34,7 @@ function MenuBar() {
 {/* Note: the links must be placed in the app.js file, also the files they path to must exist */}
         <Nav className="ms-auto">
           <Nav.Link as={Link} to="/dashboard">Home</Nav.Link>
-          {showLogLink && <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>}
+          {authenticated && <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>}
           <Nav.Link as={Link} to="/leaderboard">Leaderboard</Nav.Link>
           <Nav.Link as={Link} to="/profile">Profile</Nav.Link>
           {showApproveLink && <Nav.Link as={Link} to="/faculty-approval">Approve</Nav.Link>}

@@ -39,6 +39,7 @@ const dashboardContent = {
     title: 'Faculty Admin Dashboard',
     description: 'Approve assigned requests, manage users, and review the school activity record.',
     actions: [
+      ['Log student hours', 'Record confirmed hours on behalf of a student.', '/log'],
       ['Approve requests', 'Review only service logs requested from you.', '/faculty-approval'],
       ['School activities', 'Review all previously logged service activities.', '/admin?tab=activities'],
       ['Manage users', 'Update roles, import users, and manage access.', '/admin'],
