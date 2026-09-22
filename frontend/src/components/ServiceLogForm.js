@@ -105,6 +105,14 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
             return;
         }
 
+        if (!staffUser && !selectedTeacher) {
+            setFeedback({
+                type: 'error',
+                message: 'Please choose the faculty member who will verify these hours.'
+            });
+            return;
+        }
+
         const numaricHours = Number(hours)
 
         if (numaricHours >= 1000){
