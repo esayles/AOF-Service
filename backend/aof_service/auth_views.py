@@ -18,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport.requests import Request as GoogleRequest
 
-from .models import StudentProfile
+from .models import ensure_student_profile
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -100,10 +100,13 @@ class GoogleAuthView(APIView):
             user.set_unusable_password()
             user.role = User.STUDENT
             user.save()
-
-            StudentProfile.objects.get_or_create(user=user)
             created = True
-            
+
+        # Run for returning users too: accounts created outside this view (the
+        # Django admin, a management command, the CSV import) or demoted to
+        # student later can reach their first login without a profile.
+        ensure_student_profile(user)
+
         refresh = RefreshToken.for_user(user)
 
         logger.info(

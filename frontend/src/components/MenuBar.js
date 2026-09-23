@@ -21,8 +21,8 @@ function MenuBar() {
   return (
     <Navbar className="app-navbar" expand="lg">
       <Container fluid className="px-2">
-        {/* makes the brand name a link to the home page, which is the leaderboard */}
-        <Navbar.Brand as={Link} to ="/leaderboard">
+        {/* The brand returns users to the role-specific dashboard. */}
+        <Navbar.Brand as={Link} to ="/dashboard">
           <img
             src={logo}
             height="40"
@@ -33,9 +33,9 @@ function MenuBar() {
 
 {/* Note: the links must be placed in the app.js file, also the files they path to must exist */}
         <Nav className="ms-auto">
-          <Nav.Link as={Link} to="/leaderboard">Home</Nav.Link>
-          <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>
-          <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
+          <Nav.Link as={Link} to="/dashboard">Home</Nav.Link>
+          {authenticated && <Nav.Link as={Link} to="/log">Log Hours</Nav.Link>}
+          <Nav.Link as={Link} to="/leaderboard">Leaderboard</Nav.Link>
           <Nav.Link as={Link} to="/profile">Profile</Nav.Link>
           {showApproveLink && <Nav.Link as={Link} to="/faculty-approval">Approve</Nav.Link>}
           {showAdminLink && <Nav.Link as={Link} to="/admin">Admin</Nav.Link>}

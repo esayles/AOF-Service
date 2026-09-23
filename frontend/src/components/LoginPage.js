@@ -34,8 +34,8 @@ function LoginPage() {
       console.log("Logged in user:", data.user);
       setAuthTokens({ access: data.access, refresh: data.refresh }, data.user);
 
-      // Redirect to the leaderboard after successful login
-      navigate("/leaderboard");
+      // Redirect to the role-specific dashboard after successful login
+      navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {

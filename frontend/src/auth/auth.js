@@ -6,6 +6,7 @@ export const AUTH_KEYS = {
   access: 'access',
   refresh: 'refresh',
   role: 'role',
+  userId: 'userId',
 };
 
 // Sets/updates the access and refresh tokens in localStorage.
@@ -21,6 +22,9 @@ export function setAuthTokens(tokens, user = {}) {
   } else {
     localStorage.removeItem(AUTH_KEYS.role);
   }
+  if (user?.id) {
+    localStorage.setItem(AUTH_KEYS.userId, String(user.id));
+  }
 }
 
 // Removes the access and refresh tokens from localStorage: to log the user out.
@@ -28,6 +32,7 @@ export function clearAuthTokens() {
   localStorage.removeItem(AUTH_KEYS.access);
   localStorage.removeItem(AUTH_KEYS.refresh);
   localStorage.removeItem(AUTH_KEYS.role);
+  localStorage.removeItem(AUTH_KEYS.userId);
 }
 
 //Checks if user is logged in.
@@ -89,13 +94,25 @@ export function getUserRole() {
   return localStorage.getItem(AUTH_KEYS.role) || 'student';
 }
 
+export function getUserId() {
+  return localStorage.getItem(AUTH_KEYS.userId);
+}
+
+export function setUserRole(role) {
+  localStorage.setItem(AUTH_KEYS.role, role);
+}
+
 // Checks if the user has a faculty or admin role.
 export function isFacultyOrAdmin() {
-  return getUserRole() === 'faculty' || getUserRole() === 'admin';
+  return getUserRole() === 'faculty' || getUserRole() === 'faculty_admin' || getUserRole() === 'admin';
 }
 
 export function isAdmin() {
-  return getUserRole() === 'admin';
+  return ['student_admin', 'faculty_admin', 'admin'].includes(getUserRole());
+}
+
+export function isFacultyAdmin() {
+  return getUserRole() === 'faculty_admin';
 }
 
 // This is a UI convenience only; Django enforces the role for every faculty
