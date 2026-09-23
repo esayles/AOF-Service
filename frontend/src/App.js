@@ -76,7 +76,7 @@ function App() {
 
         <Route
           path="/log"
-          element={isFacultyAdmin() ? <Navigate to="/faculty-approval" replace /> : <ServiceLogForm />}
+          element={<ServiceLogForm />}
         />
 
         <Route

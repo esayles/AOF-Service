@@ -80,6 +80,12 @@ function AdminPortal() {
     loadPreferences();
   }, []);
 
+  useEffect(() => {
+    if (searchParams.get('tab') === 'activities') {
+      loadActivities();
+    }
+  }, [searchParams]);
+
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -321,7 +327,7 @@ function AdminPortal() {
             />
           </Tab>
 
-          <Tab eventKey="activities" title="Activities" onEnter={loadActivities}>
+          <Tab eventKey="activities" title="Activities">
             <div className="section-card">
               <h5>School Activities</h5>
               <p className="text-muted">Previously logged service activities across the school.</p>
