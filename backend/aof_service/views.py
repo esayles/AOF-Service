@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .emails import send_verification_request
-from .models import ServiceHour, StudentProfile
+from .models import ServiceHour, StudentProfile, ensure_student_profile
 from .serializer import (
     FacultySerializer,
     ServiceHourSerializer,
@@ -27,8 +27,9 @@ from .serializer import (
     StudentProfileSerializer,
     UserManagementSerializer,
     UserRoleSerializer,
+    ActivitySerializer,
 )
-from .permissions import IsAdminPermission, IsFacultyOrAdminPermission
+from .permissions import IsAdminPermission, IsFacultyOrAdminPermission, IsSchoolActivityAdminPermission
 
 User = get_user_model()
 
@@ -50,19 +51,19 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         qs = ServiceHour.objects.select_related(
             "student__user", "confirmed_by", "request_verifier"
         )
+        if getattr(user, "role", None) in User.FACULTY_ROLES:
+            return qs.filter(request_verifier=user)
         if getattr(user, "role", None) == User.ADMIN:
             return qs
-        if getattr(user, "role", None) == User.FACULTY:
-            return qs.filter(request_verifier=user)
         return qs.filter(student__user=user)
 
     def perform_create(self, serializer):
         service_hour = serializer.save()
         user = self.request.user
         should_auto_approve = (
-            user.role == User.FACULTY
+            user.role in (User.FACULTY, User.FACULTY_ADMIN)
             or (
-                user.role == User.ADMIN
+                user.role in User.ADMIN_ROLES
                 and user.auto_approve_service_hours
             )
         )
@@ -75,14 +76,14 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
             service_hour.confirmed_at = timezone.now()
             service_hour.status = ServiceHour.CONFIRMED
             service_hour.save(update_fields=["confirmed_by", "confirmed_at", "status"])
-        elif user.role == User.STUDENT:
+        elif user.role in User.STUDENT_ROLES:
             # Notify the requested verifier.
             send_verification_request(service_hour)
 
     # A method that allows faculty/admin to update students' service logs.
     def perform_update(self, serializer):
         if (
-            self.request.user.role not in (User.FACULTY, User.ADMIN)
+            self.request.user.role not in User.FACULTY_VERIFIER_ROLES
             and serializer.instance.confirmed_by_id
         ):
             raise PermissionDenied("Confirmed service hours can only be changed by faculty or an administrator.")
@@ -91,7 +92,7 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     # A method allowing faculty and admin to delete service logs.
     def perform_destroy(self, instance):
         if (
-            self.request.user.role not in (User.FACULTY, User.ADMIN)
+            self.request.user.role not in User.FACULTY_VERIFIER_ROLES
             and instance.confirmed_by_id
         ):
             raise PermissionDenied("Confirmed service hours can only be deleted by faculty or an administrator.")
@@ -107,7 +108,7 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         if (
             obj.request_verifier_id
             and obj.request_verifier_id != request.user.id
-            and request.user.role != User.ADMIN
+            and request.user.role not in User.ADMIN_ROLES
         ):
             raise PermissionDenied("Only the requested verifier or an administrator can confirm this log.")
         obj.confirmed_by = request.user
@@ -129,7 +130,7 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         if (
             obj.request_verifier_id
             and obj.request_verifier_id != request.user.id
-            and request.user.role != User.ADMIN
+            and request.user.role not in User.ADMIN_ROLES
         ):
             raise PermissionDenied("Only the requested verifier or an administrator can decline this log.")
 
@@ -155,13 +156,25 @@ class LeaderboardView(APIView):
         return Response(serializer.data)
 
 
+class AdminActivitiesView(APIView):
+    """Return the school's complete service-activity history to admins."""
+
+    permission_classes = [IsAuthenticated, IsSchoolActivityAdminPermission]
+
+    def get(self, request):
+        activities = ServiceHour.objects.select_related(
+            "student__user", "request_verifier"
+        ).order_by("-date_performed", "-id")
+        return Response(ActivitySerializer(activities, many=True).data)
+
+
 class FacultyListView(APIView):
     """List faculty/admin users so the log form can offer real verifier choices."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        qs = User.objects.filter(role__in=("faculty", "admin")).order_by("last_name", "first_name")
+        qs = User.objects.filter(role__in=User.FACULTY_VERIFIER_ROLES).order_by("last_name", "first_name")
         serializer = FacultySerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -172,7 +185,7 @@ class StudentListView(APIView):
     permission_classes = [IsAuthenticated, IsFacultyOrAdminPermission]
 
     def get(self, request):
-        qs = StudentProfile.objects.filter(user__role=User.STUDENT).select_related("user").order_by(
+        qs = StudentProfile.objects.filter(user__role__in=User.STUDENT_ROLES).select_related("user").order_by(
             "user__last_name", "user__first_name", "user__email"
         )
         serializer = StudentListSerializer(qs, many=True)
@@ -182,8 +195,10 @@ class StudentListView(APIView):
 def role_from_csv(role_value):
     """Map the formatted CSV role descriptions to application roles."""
     normalized = (role_value or "").casefold()
+    if "student" in normalized and "admin" in normalized:
+        return User.STUDENT_ADMIN
     if "admin" in normalized:
-        return User.ADMIN
+        return User.FACULTY_ADMIN
     if "staff" in normalized or "faculty" in normalized:
         return User.FACULTY
     return User.STUDENT
@@ -207,7 +222,7 @@ class AdminStudentProfileView(APIView):
         profile = get_object_or_404(
             StudentProfile.objects.select_related("user"),
             user_id=user_id,
-            user__role=User.STUDENT,
+            user__role__in=User.STUDENT_ROLES,
         )
         logs = ServiceHour.objects.filter(student=profile).select_related(
             "student__user", "confirmed_by", "request_verifier"
@@ -329,7 +344,7 @@ class AdminUserImportView(APIView):
                         if getattr(user, field) != record[field]:
                             setattr(user, field, record[field])
                             changed_fields.append(field)
-                    if user.role != User.ADMIN and user.role != record["role"]:
+                    if not user.is_app_admin and user.role != record["role"]:
                         user.role = record["role"]
                         changed_fields.append("role")
                     if changed_fields:
@@ -338,7 +353,7 @@ class AdminUserImportView(APIView):
                     else:
                         unchanged += 1
 
-                if user.role == User.STUDENT:
+                if user.role in User.STUDENT_ROLES:
                     _, profile_created = StudentProfile.objects.get_or_create(user=user)
                     student_profiles_created += int(profile_created)
 
@@ -362,21 +377,20 @@ class AdminUserDetailView(APIView):
     @staticmethod
     def ensure_admin_remains(target_user, new_role=None):
         will_remove_admin = (
-            target_user.role == User.ADMIN
-            and (new_role is None or new_role != User.ADMIN)
+            target_user.role in User.ADMIN_ROLES
+            and (new_role is None or new_role not in User.ADMIN_ROLES)
         )
-        if will_remove_admin and User.objects.filter(role=User.ADMIN).count() <= 1:
+        if will_remove_admin and User.objects.filter(role__in=User.ADMIN_ROLES).count() <= 1:
             raise ValidationError({"role": "At least one administrator account must remain."})
 
     def patch(self, request, user_id):
         user = self.get_object(user_id)
-        if user.pk == request.user.pk:
-            raise PermissionDenied("You cannot change your own administrator role.")
-
         serializer = UserRoleSerializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.ensure_admin_remains(user, serializer.validated_data.get("role"))
         serializer.save()
+        # A user demoted to student needs the profile their service logs hang off.
+        ensure_student_profile(user)
         return Response(UserManagementSerializer(user).data)
 
     def delete(self, request, user_id):

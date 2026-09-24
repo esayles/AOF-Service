@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import ServiceHour, StudentProfile
+from .models import ServiceHour, StudentProfile, ensure_student_profile
 
 User = get_user_model()
 
@@ -26,7 +26,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     request_verifier = serializers.PrimaryKeyRelatedField(
         required=False,
         allow_null=True,
-        queryset=User.objects.filter(role__in=(User.FACULTY, User.ADMIN)),
+        queryset=User.objects.filter(role__in=User.FACULTY_VERIFIER_ROLES),
     )
 
     class Meta:
@@ -66,7 +66,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         user = getattr(request, "user", None)
-        is_staff_user = getattr(user, "role", None) in (User.FACULTY, User.ADMIN)
+        is_staff_user = getattr(user, "role", None) in User.FACULTY_VERIFIER_ROLES
 
         # Fixes error where a student can choose a different student when creating a ServiceHour obejct.
         if not is_staff_user and "student" in attrs:
@@ -84,19 +84,49 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             })
 
         user = request.user
-        if getattr(user, "role", None) in (User.FACULTY, User.ADMIN):
+        if getattr(user, "role", None) in User.FACULTY_VERIFIER_ROLES:
             if "student" not in validated_data:
                 raise serializers.ValidationError({
                     "student": "Choose the student whose hours are being recorded."
                 })
-        elif hasattr(user, "student_profile") and user.student_profile is not None:
-            validated_data["student"] = user.student_profile
         else:
-            raise serializers.ValidationError({
-                "student": "Unable to determine student — ensure the authenticated user has a StudentProfile."
-            })
+            # Students log against their own profile, created on demand for
+            # accounts that never got one (see ensure_student_profile).
+            profile = ensure_student_profile(user)
+            if profile is None:
+                raise serializers.ValidationError({
+                    "student": "Unable to determine student — only student accounts can log their own hours."
+                })
+            validated_data["student"] = profile
 
         return super().create(validated_data)
+
+
+class ActivitySerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    verifier_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ServiceHour
+        fields = [
+            "id",
+            "student_name",
+            "description",
+            "hours",
+            "date_performed",
+            "status",
+            "verifier_name",
+        ]
+
+    def get_student_name(self, obj):
+        user = obj.student.user
+        return f"{user.first_name} {user.last_name}".strip() or user.username
+
+    def get_verifier_name(self, obj):
+        if not obj.request_verifier:
+            return ""
+        user = obj.request_verifier
+        return f"{user.first_name} {user.last_name}".strip() or user.username
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):

@@ -112,6 +112,13 @@ export const getAdminPreferences = async () => {
 
   return readResponse(response, 'Unable to load admin preferences.');
 };
+
+export const getAdminActivities = async () => {
+  const response = await fetch(`${API_URL}/api/admin/activities/`, {
+    headers: getAuthHeaders(),
+  });
+  return readResponse(response, 'Unable to load school activities.');
+};
 //allows for future additions to the admin testing panel 
 export const updateAdminPreferences = async (preferences) => {
   const response = await fetch(`${API_URL}/api/admin/preferences/`, {

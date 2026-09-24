@@ -5,20 +5,24 @@ Users not included in the CSV will be kept.
 */
 
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Spinner, Tab, Table, Tabs } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { Alert, Badge, Button, Spinner, Tab, Table, Tabs } from 'react-bootstrap';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   deleteAdminUser,
   getAdminUsers,
   getAdminPreferences,
+  getAdminActivities,
   importAdminUsers,
   updateAdminUserRole,
   updateAdminPreferences,
 } from '../API';
+import { getUserId, isAdmin, setUserRole } from '../auth/auth';
 import { useTableRowLimit } from './TableRowLimit';
+import AdminStudentSearch from './AdminStudentSearch';
 
 function AdminPortal() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -28,6 +32,8 @@ function AdminPortal() {
   const [autoApproveHours, setAutoApproveHours] = useState(true);
   const [preferencesLoading, setPreferencesLoading] = useState(true);
   const [preferencesSaving, setPreferencesSaving] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
   const { visibleRows, rowLimitControl } = useTableRowLimit(users);
 
   const loadUsers = async () => {
@@ -57,10 +63,28 @@ function AdminPortal() {
     }
   };
 
+  const loadActivities = async () => {
+    try {
+      setActivitiesLoading(true);
+      const data = await getAdminActivities();
+      setActivities(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || 'Unable to load school activities.');
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadUsers();
     loadPreferences();
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'activities') {
+      loadActivities();
+    }
+  }, [searchParams]);
 
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -92,6 +116,13 @@ function AdminPortal() {
     setActioningUserId(user.id);
     try {
       await updateAdminUserRole(user.id, role);
+      if (String(user.id) === getUserId()) {
+        setUserRole(role);
+        if (!isAdmin()) {
+          window.location.assign('/dashboard');
+          return;
+        }
+      }
       setSuccess(`Updated ${user.email} to ${role}.`);
       await loadUsers();
     } catch (err) {
@@ -158,7 +189,7 @@ function AdminPortal() {
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        <Tabs defaultActiveKey="users" className="mb-3">
+        <Tabs activeKey={searchParams.get('tab') || 'users'} onSelect={(key) => navigate(key === 'users' ? '/admin' : `/admin?tab=${key}`)} className="mb-3">
           <Tab eventKey="users" title="Manage Users">
             <div className="section-card mb-4">
               <h5>Import users from CSV</h5>
@@ -202,7 +233,7 @@ function AdminPortal() {
                     {visibleRows.map((user) => (
                       <tr key={user.id}>
                         <td>
-                          {user.role === 'student' ? (
+                          {['student', 'student_admin'].includes(user.role) ? (
                             <Button
                               variant="link"
                               className="p-0 text-start"
@@ -225,7 +256,9 @@ function AdminPortal() {
                           >
                             <option value="student">Student</option>
                             <option value="faculty">Faculty</option>
-                            <option value="admin">Admin</option>
+                            <option value="student_admin">Student Admin</option>
+                            <option value="faculty_admin">Faculty Admin</option>
+                            <option value="admin">Admin (legacy)</option>
                           </select>
                         </td>
                         <td>{user.is_active ? 'Active' : 'Inactive'}</td>
@@ -282,11 +315,57 @@ function AdminPortal() {
                   </label>
                 </div>
               )}
-
               <p className="text-muted mt-2 mb-0">
                 When disabled, service hours you create will remain pending so you can
                 test the approval workflow.
               </p>
+            </div>
+            <AdminStudentSearch
+                  users={users}
+                  loading={loading}
+                  onRefresh={loadUsers}
+            />
+          </Tab>
+
+          <Tab eventKey="activities" title="Activities">
+            <div className="section-card">
+              <h5>School Activities</h5>
+              <p className="text-muted">Previously logged service activities across the school.</p>
+              {activitiesLoading ? (
+                <div className="d-flex align-items-center gap-2 text-muted">
+                  <Spinner animation="border" size="sm" />
+                  Loading activities...
+                </div>
+              ) : activities.length === 0 ? (
+                <p className="text-muted mb-0">No activities have been logged yet.</p>
+              ) : (
+                <Table responsive hover bordered className="bg-white mb-0">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Description</th>
+                      <th>Hours</th>
+                      <th>Date</th>
+                      <th>Verifier</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activities.map((activity) => (
+                      <tr key={activity.id}>
+                        <td>{activity.student_name}</td>
+                        <td>{activity.description}</td>
+                        <td>{activity.hours}</td>
+                        <td>{activity.date_performed}</td>
+                        <td>{activity.verifier_name || '—'}</td>
+                        <td>
+                          {activity.status === 'declined' ? <Badge bg="danger">Declined</Badge> : activity.status === 'confirmed' ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
             </div>
           </Tab>
         </Tabs>

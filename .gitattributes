@@ -1,0 +1,7 @@
+# Store text files with LF endings no matter which git client makes the commit.
+# Relying on core.autocrlf alone let CRLF into the repo, which broke
+# backend/migrate_testing.sh in CI ("set: pipefail\r: invalid option name").
+* text=auto
+
+# Shell scripts run under bash, so keep them LF in working trees too.
+*.sh text eol=lf
