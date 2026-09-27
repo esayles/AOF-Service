@@ -10,8 +10,8 @@ const dashboardContent = {
     description: 'Record your impact, follow approvals, and see how your hours compare.',
     actions: [
       ['Log service hours', 'Submit an activity and choose a faculty verifier.', '/log'],
-      ['View my activity', 'Review pending, approved, and declined submissions.', '/profile'],
       ['See the leaderboard', 'Explore the school-wide service rankings.', '/leaderboard'],
+      ['View my activity', 'Review pending, approved, and declined submissions.', '/profile'],
     ],
   },
   faculty: {
@@ -19,9 +19,9 @@ const dashboardContent = {
     title: 'Faculty Dashboard',
     description: 'Review assigned requests, record hours for students, and monitor your own profile.',
     actions: [
-      ['Approve requests', 'Review only the service logs requested from you.', '/faculty-approval'],
       ['Add student hours', 'Record confirmed hours for a student.', '/log'],
       ['View leaderboard', 'See the school service rankings.', '/leaderboard'],
+      ['Approve requests', 'Review only the service logs requested from you.', '/faculty-approval'],
     ],
   },
   student_admin: {
@@ -58,11 +58,10 @@ function RoleDashboard() {
         <p className="page-description mb-4">{content.description}</p>
 
         <div className="row g-3">
-          {content.actions.map(([title, description, path], index) => (
+          {content.actions.map(([title, description, path]) => (
             <div className="col-lg-4" key={title}>
               <Card className="h-100 dashboard-action-card">
                 <Card.Body className="d-flex flex-column">
-                  <div className="metric-label">0{index + 1}</div>
                   <Card.Title>{title}</Card.Title>
                   <Card.Text className="text-muted flex-grow-1">{description}</Card.Text>
                   <Button as={Link} to={path} variant="primary">Open</Button>
