@@ -22,6 +22,7 @@ import { getUserId, getUserRole, isAdmin, setUserRole } from '../auth/auth';
 import { useTableRowLimit } from './TableRowLimit';
 import AdminStudentSearch from './AdminStudentSearch';
 import EditServiceLogModal from './EditServiceLogModal';
+import { sortServiceLogsPendingFirst } from './dashboardUtils';
 
 function AdminPortal() {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ function AdminPortal() {
   const [savingActivity, setSavingActivity] = useState(false);
   const [actioningActivityId, setActioningActivityId] = useState(null);
   const canEditActivities = ['faculty_admin', 'admin'].includes(getUserRole());
+  const orderedActivities = sortServiceLogsPendingFirst(activities);
   const { visibleRows, rowLimitControl } = useTableRowLimit(users);
 
   const loadUsers = async () => {
@@ -389,7 +391,7 @@ function AdminPortal() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activities.map((activity) => (
+                    {orderedActivities.map((activity) => (
                       <tr key={activity.id}>
                         <td>{activity.student_name}</td>
                         <td>{activity.description}</td>

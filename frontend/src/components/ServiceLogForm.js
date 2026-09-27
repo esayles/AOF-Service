@@ -13,6 +13,7 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
     const [studentSearch, setStudentSearch] = useState('');
     const [description, setDescription] = useState('');
     const [hours, setHours] = useState('');
+    const [datePerformed, setDatePerformed] = useState('');
     const [faculty, setFaculty] = useState([]);
     const [students, setStudents] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,8 +93,8 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
         e.preventDefault();
         setFeedback({ type: '', message: '' });
 
-        if (!description.trim() || !hours) {
-            setFeedback({ type: 'error', message: 'Please add a description and hours before submitting.' });
+        if (!description.trim() || !hours || !datePerformed) {
+            setFeedback({ type: 'error', message: 'Please add a description, hours, and activity date before submitting.' });
             return;
         }
 
@@ -138,7 +139,7 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
         const payload = {
             description: description.trim(),
             hours: numaricHours,
-            date_performed: new Date().toISOString().slice(0, 10),
+            date_performed: datePerformed,
             ...(staffUser && selectedStudent
                 ? { student: parseInt(selectedStudent, 10) }
                 : {}),
@@ -162,6 +163,7 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
             setSelectedStudent('');
             setDescription('');
             setHours('');
+            setDatePerformed('');
             setTeacherSearch('');
             setStudentSearch('');
 
@@ -232,6 +234,17 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
                     onChange={handleHoursChange}
                     step="0.25"
                     min="0.25"
+                />
+            </div>
+            <div className="mb-3">
+                <label htmlFor="datePerformedInput" className="form-label">Date Performed</label>
+                <input
+                    type="date"
+                    id="datePerformedInput"
+                    className="form-control"
+                    value={datePerformed}
+                    onChange={(event) => setDatePerformed(event.target.value)}
+                    required
                 />
             </div>
             {!staffUser && (

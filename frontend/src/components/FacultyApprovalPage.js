@@ -11,6 +11,7 @@ import {
 } from '../API';
 import { useTableRowLimit } from './TableRowLimit';
 import EditServiceLogModal from './EditServiceLogModal';
+import { sortServiceLogsPendingFirst } from './dashboardUtils';
 
 // The FacultyApprovalPage component fetches pending service logs and allows faculty members to approve them.
 function FacultyApprovalPage() {
@@ -84,10 +85,7 @@ function FacultyApprovalPage() {
     }
   };
 
-  const sortedLogs = [...logs].sort((a, b) => {
-    const dateOrder = new Date(b.date_performed) - new Date(a.date_performed);
-    return dateOrder || b.id - a.id;
-  });
+  const sortedLogs = sortServiceLogsPendingFirst(logs);
   const { visibleRows, rowLimitControl } = useTableRowLimit(sortedLogs);
 
   return (
