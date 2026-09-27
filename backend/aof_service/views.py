@@ -51,9 +51,12 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         qs = ServiceHour.objects.select_related(
             "student__user", "confirmed_by", "request_verifier"
         )
-        if getattr(user, "role", None) in User.FACULTY_ROLES:
+        role = getattr(user, "role", None)
+        if role == User.FACULTY_ADMIN and self.action != "list":
+            return qs
+        if role in User.FACULTY_ROLES:
             return qs.filter(request_verifier=user)
-        if getattr(user, "role", None) == User.ADMIN:
+        if role == User.ADMIN:
             return qs
         return qs.filter(student__user=user)
 
@@ -82,6 +85,11 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
 
     # A method that allows faculty/admin to update students' service logs.
     def perform_update(self, serializer):
+        if (
+            self.request.user.role in User.FACULTY_ROLES
+            and set(serializer.validated_data) - {"description", "hours", "date_performed"}
+        ):
+            raise PermissionDenied("Faculty can only update a service log's description, hours, or date.")
         if (
             self.request.user.role not in User.FACULTY_VERIFIER_ROLES
             and serializer.instance.confirmed_by_id
@@ -125,8 +133,6 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         if obj.status == ServiceHour.DECLINED:
             raise ValidationError({"detail": "This service log has already been declined."})
-        if obj.confirmed_by_id:
-            raise ValidationError({"detail": "Confirmed service logs cannot be declined."})
         if (
             obj.request_verifier_id
             and obj.request_verifier_id != request.user.id

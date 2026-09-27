@@ -15,10 +15,13 @@ import {
   importAdminUsers,
   updateAdminUserRole,
   updateAdminPreferences,
+  updateServiceLog,
+  declineServiceLog,
 } from '../API';
-import { getUserId, isAdmin, setUserRole } from '../auth/auth';
+import { getUserId, getUserRole, isAdmin, setUserRole } from '../auth/auth';
 import { useTableRowLimit } from './TableRowLimit';
 import AdminStudentSearch from './AdminStudentSearch';
+import EditServiceLogModal from './EditServiceLogModal';
 
 function AdminPortal() {
   const navigate = useNavigate();
@@ -34,6 +37,10 @@ function AdminPortal() {
   const [preferencesSaving, setPreferencesSaving] = useState(false);
   const [activities, setActivities] = useState([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [savingActivity, setSavingActivity] = useState(false);
+  const [actioningActivityId, setActioningActivityId] = useState(null);
+  const canEditActivities = ['faculty_admin', 'admin'].includes(getUserRole());
   const { visibleRows, rowLimitControl } = useTableRowLimit(users);
 
   const loadUsers = async () => {
@@ -72,6 +79,36 @@ function AdminPortal() {
       setError(err.message || 'Unable to load school activities.');
     } finally {
       setActivitiesLoading(false);
+    }
+  };
+
+  const handleActivitySave = async (changes) => {
+    try {
+      setSavingActivity(true);
+      await updateServiceLog(editingActivity.id, changes);
+      setEditingActivity(null);
+      setSuccess('Service log updated.');
+      await loadActivities();
+    } catch (err) {
+      setError(err.message || 'Unable to update this log.');
+    } finally {
+      setSavingActivity(false);
+    }
+  };
+
+  const handleActivityDecline = async (activity) => {
+    if (activity.status === 'declined') return;
+    if (!window.confirm('Decline this service log? It will remain visible to the student as declined.')) return;
+
+    try {
+      setActioningActivityId(activity.id);
+      await declineServiceLog(activity.id);
+      setSuccess('Service log declined.');
+      await loadActivities();
+    } catch (err) {
+      setError(err.message || 'Unable to decline this log.');
+    } finally {
+      setActioningActivityId(null);
     }
   };
 
@@ -348,6 +385,7 @@ function AdminPortal() {
                       <th>Date</th>
                       <th>Verifier</th>
                       <th>Status</th>
+                      {canEditActivities && <th>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -361,6 +399,12 @@ function AdminPortal() {
                         <td>
                           {activity.status === 'declined' ? <Badge bg="danger">Declined</Badge> : activity.status === 'confirmed' ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}
                         </td>
+                        {canEditActivities && (
+                          <td className="text-nowrap">
+                            <Button className="me-2" size="sm" variant="outline-primary" onClick={() => setEditingActivity(activity)} disabled={actioningActivityId === activity.id}>Edit</Button>
+                            {activity.status !== 'declined' && <Button size="sm" variant="danger" onClick={() => handleActivityDecline(activity)} disabled={actioningActivityId === activity.id}>{actioningActivityId === activity.id ? 'Declining...' : 'Decline'}</Button>}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -370,6 +414,12 @@ function AdminPortal() {
           </Tab>
         </Tabs>
       </div>
+      <EditServiceLogModal
+        log={editingActivity}
+        onHide={() => setEditingActivity(null)}
+        onSave={handleActivitySave}
+        saving={savingActivity}
+      />
     </div>
   );
 }
