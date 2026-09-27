@@ -385,7 +385,7 @@ function AdminPortal() {
                       <th>Description</th>
                       <th>Hours</th>
                       <th>Date</th>
-                      <th>Verifier</th>
+                      <th>Approver</th>
                       <th>Status</th>
                       {canEditActivities && <th>Actions</th>}
                     </tr>

@@ -51,9 +51,9 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(res.status_code, 400, res.content)
         self.assertIn("student", res.data)
 
-    #Tests that: user is student, creates a service hour with a requested verifier, and checks that a verification email is sent to the faculty member. The test uses Django's locmem email backend to capture the email in memory for assertions.
+    #Tests that a student request sends an approval email to the selected faculty member.
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
-    def test_student_create_with_verifier_sends_verification_email(self):
+    def test_student_create_with_approver_sends_approval_email(self):
         self.client.force_authenticate(user=self.student_user)
 
         payload = {
@@ -67,7 +67,7 @@ class ServiceHourViewTests(TestCase):
         self.assertEqual(res.status_code, 201, res.content)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [self.faculty_user.email])
-        self.assertIn("verification request", mail.outbox[0].subject.lower())
+        self.assertIn("approval request", mail.outbox[0].subject.lower())
         self.assertIn("Volunteer shift", mail.outbox[0].body)
 
     def test_student_cannot_confirm_servicehour(self):
@@ -112,7 +112,7 @@ class ServiceHourViewTests(TestCase):
         )
         ServiceHour.objects.create(
             student=self.student_profile,
-            description="No verifier requested",
+            description="No approver requested",
             hours=Decimal("1.00"),
             date_performed=date.today(),
         )

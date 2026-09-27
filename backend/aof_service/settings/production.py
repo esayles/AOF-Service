@@ -33,7 +33,7 @@ PRODUCTION_FRONTEND_URL = os.environ.get(
 
 CORS_ALLOWED_ORIGINS = [PRODUCTION_FRONTEND_URL]
 
-# Verification emails must point faculty at the production frontend, not at
+# Approval emails must point faculty at the production frontend, not at
 # the Vercel testing site. Follows PRODUCTION_FRONTEND_URL automatically, so
 # the custom-domain cutover only needs that one variable changed.
 SERVICE_HOUR_APP_URL = os.environ.get('SERVICE_HOUR_APP_URL', PRODUCTION_FRONTEND_URL)

@@ -9,7 +9,7 @@ const dashboardContent = {
     title: 'Your Service Dashboard',
     description: 'Record your impact, follow approvals, and see how your hours compare.',
     actions: [
-      ['Log service hours', 'Submit an activity and choose a faculty verifier.', '/log'],
+      ['Log service hours', 'Submit an activity and choose a faculty approver.', '/log'],
       ['See the leaderboard', 'Explore the school-wide service rankings.', '/leaderboard'],
       ['View my activity', 'Review pending, approved, and declined submissions.', '/profile'],
     ],
@@ -29,7 +29,7 @@ const dashboardContent = {
     title: 'Student Admin Dashboard',
     description: 'Work as a student while managing users and viewing school activity.',
     actions: [
-      ['Log service hours', 'Submit your own hours to a faculty verifier.', '/log'],
+      ['Log service hours', 'Submit your own hours to a faculty approver.', '/log'],
       ['School activities', 'Review all previously logged service activities.', '/admin?tab=activities'],
       ['Manage users', 'Update user roles and account access.', '/admin'],
     ],

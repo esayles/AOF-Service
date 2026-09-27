@@ -109,7 +109,7 @@ function ServiceLogForm({ onSubmissionSuccess, showHeading = true }) {
         if (!staffUser && !selectedTeacher) {
             setFeedback({
                 type: 'error',
-                message: 'Please choose the faculty member who will verify these hours.'
+                message: 'Please choose the faculty member who will approve these hours.'
             });
             return;
         }

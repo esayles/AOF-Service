@@ -93,7 +93,7 @@ function FacultyApprovalPage() {
       <div className="portal-surface">
         <p className="page-eyebrow">Faculty portal</p>
         <h3 className="page-heading">Faculty Service Hours</h3>
-        <p className="page-description">Approve or decline service-hour requests assigned to you as verifier.</p>
+        <p className="page-description">Approve or decline service-hour requests assigned to you as approver.</p>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
