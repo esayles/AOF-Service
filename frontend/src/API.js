@@ -175,6 +175,10 @@ export async function readResponse(response, fallbackMessage) {
     return data;
   }
 
+  if (response.status === 401) {
+    throw new Error('Please sign in again.');
+  }
+
   const detail = data.detail || Object.values(data).flat().join(' ');
   throw new Error(detail || fallbackMessage);
 }
