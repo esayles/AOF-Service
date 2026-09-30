@@ -21,7 +21,7 @@ if 'test' not in sys.argv and os.environ.get('DB_HOST'):
         }
     }
 
-# Verification emails from the testing deployment link back to the testing
+# Approval emails from the testing deployment link back to the testing
 # frontend, never to production.
 SERVICE_HOUR_APP_URL = os.environ.get('SERVICE_HOUR_APP_URL', 'https://aof-service.vercel.app')
 

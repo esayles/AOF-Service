@@ -10,7 +10,7 @@ export const getServiceLogs = async () => {
   });
   return readResponse(response, 'Unable to load service logs.');
 };
-// Fetches the list of faculty members from the backend API. This function is used to populate the dropdown in the service log form, allowing students to select a teacher for verification.
+// Fetches faculty members for the approver dropdown in the service log form.
 export const getMyServiceLogs = async () => {
   const response = await fetch(`${API_URL}/api/service-logs/mine/`, {
     headers: getAuthHeaders(),
@@ -173,6 +173,10 @@ export async function readResponse(response, fallbackMessage) {
 
   if (response.ok) {
     return data;
+  }
+
+  if (response.status === 401) {
+    throw new Error('Please sign in again.');
   }
 
   const detail = data.detail || Object.values(data).flat().join(' ');

@@ -29,7 +29,7 @@ class User(AbstractUser):
 
     ADMIN_ROLES = (STUDENT_ADMIN, FACULTY_ADMIN, ADMIN)
     FACULTY_ROLES = (FACULTY, FACULTY_ADMIN)
-    FACULTY_VERIFIER_ROLES = (FACULTY, FACULTY_ADMIN, ADMIN)
+    FACULTY_APPROVER_ROLES = (FACULTY, FACULTY_ADMIN, ADMIN)
     STUDENT_ROLES = (STUDENT, STUDENT_ADMIN)
 
     role = models.CharField(max_length=14, choices=ROLE_CHOICES, default=STUDENT)
@@ -121,7 +121,7 @@ class ServiceHour(models.Model):
         blank=True,
         related_name="verification_requests",
         limit_choices_to={"role__in": ("faculty", "admin")},
-        help_text="Faculty member the student asked to verify these hours.",
+        help_text="Faculty member the student asked to approve these hours.",
     )
 
     def __str__(self):

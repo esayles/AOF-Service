@@ -18,7 +18,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .emails import send_verification_request
+from .emails import send_approval_request
 from .models import ServiceHour, StudentProfile, ensure_student_profile
 from .serializer import (
     FacultySerializer,
@@ -42,18 +42,21 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Students only ever see (and can only modify) their own logs.
 
-        Faculty can only access logs that name them as the requested verifier;
+        Faculty can only access logs that name them as the requested approver;
         administrators can access all logs. Detail routes use this queryset as
-        well, so faculty cannot approve, edit, or decline another verifier’s
+        well, so faculty cannot approve, edit, or decline another approver’s
         request.
         """
         user = self.request.user
         qs = ServiceHour.objects.select_related(
             "student__user", "confirmed_by", "request_verifier"
         )
-        if getattr(user, "role", None) in User.FACULTY_ROLES:
+        role = getattr(user, "role", None)
+        if role == User.FACULTY_ADMIN and self.action != "list":
+            return qs
+        if role in User.FACULTY_ROLES:
             return qs.filter(request_verifier=user)
-        if getattr(user, "role", None) == User.ADMIN:
+        if role == User.ADMIN:
             return qs
         return qs.filter(student__user=user)
 
@@ -69,7 +72,7 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         )
 
         if should_auto_approve:
-            # A staff member entering hours directly is a viable verifier, so
+            # A staff member entering hours directly is a viable approver, so
             # the log is immediately confirmed instead of creating another
             # pending approval.
             service_hour.confirmed_by = user
@@ -77,13 +80,18 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
             service_hour.status = ServiceHour.CONFIRMED
             service_hour.save(update_fields=["confirmed_by", "confirmed_at", "status"])
         elif user.role in User.STUDENT_ROLES:
-            # Notify the requested verifier.
-            send_verification_request(service_hour)
+            # Notify the requested approver.
+            send_approval_request(service_hour)
 
     # A method that allows faculty/admin to update students' service logs.
     def perform_update(self, serializer):
         if (
-            self.request.user.role not in User.FACULTY_VERIFIER_ROLES
+            self.request.user.role in User.FACULTY_ROLES
+            and set(serializer.validated_data) - {"description", "hours", "date_performed"}
+        ):
+            raise PermissionDenied("Faculty can only update a service log's description, hours, or date.")
+        if (
+            self.request.user.role not in User.FACULTY_APPROVER_ROLES
             and serializer.instance.confirmed_by_id
         ):
             raise PermissionDenied("Confirmed service hours can only be changed by faculty or an administrator.")
@@ -92,7 +100,7 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
     # A method allowing faculty and admin to delete service logs.
     def perform_destroy(self, instance):
         if (
-            self.request.user.role not in User.FACULTY_VERIFIER_ROLES
+            self.request.user.role not in User.FACULTY_APPROVER_ROLES
             and instance.confirmed_by_id
         ):
             raise PermissionDenied("Confirmed service hours can only be deleted by faculty or an administrator.")
@@ -110,7 +118,7 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
             and obj.request_verifier_id != request.user.id
             and request.user.role not in User.ADMIN_ROLES
         ):
-            raise PermissionDenied("Only the requested verifier or an administrator can confirm this log.")
+            raise PermissionDenied("Only the requested approver or an administrator can approve this log.")
         obj.confirmed_by = request.user
         obj.confirmed_at = timezone.now()
         obj.status = ServiceHour.CONFIRMED
@@ -125,14 +133,12 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         if obj.status == ServiceHour.DECLINED:
             raise ValidationError({"detail": "This service log has already been declined."})
-        if obj.confirmed_by_id:
-            raise ValidationError({"detail": "Confirmed service logs cannot be declined."})
         if (
             obj.request_verifier_id
             and obj.request_verifier_id != request.user.id
             and request.user.role not in User.ADMIN_ROLES
         ):
-            raise PermissionDenied("Only the requested verifier or an administrator can decline this log.")
+            raise PermissionDenied("Only the requested approver or an administrator can decline this log.")
 
         obj.status = ServiceHour.DECLINED
         obj.save(update_fields=["status"])
@@ -169,12 +175,12 @@ class AdminActivitiesView(APIView):
 
 
 class FacultyListView(APIView):
-    """List faculty/admin users so the log form can offer real verifier choices."""
+    """List faculty/admin users so the log form can offer real approver choices."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        qs = User.objects.filter(role__in=User.FACULTY_VERIFIER_ROLES).order_by("last_name", "first_name")
+        qs = User.objects.filter(role__in=User.FACULTY_APPROVER_ROLES).order_by("last_name", "first_name")
         serializer = FacultySerializer(qs, many=True)
         return Response(serializer.data)
 
