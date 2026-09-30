@@ -52,7 +52,7 @@ class ServiceHourViewSet(viewsets.ModelViewSet):
             "student__user", "confirmed_by", "request_verifier"
         )
         role = getattr(user, "role", None)
-        if role == User.FACULTY_ADMIN and self.action != "list":
+        if role == User.FACULTY_ADMIN and self.action not in ("list", "confirm"):
             return qs
         if role in User.FACULTY_ROLES:
             return qs.filter(request_verifier=user)
