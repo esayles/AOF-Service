@@ -47,7 +47,7 @@ class Command(BaseCommand):
     @staticmethod
     def admin_role_for(user):
         # Students on the admin list must stay students: faculty_admin would
-        # stop them logging hours and let them verify other students' hours.
+        # stop them logging hours and let them approve other students' hours.
         # This also corrects students an earlier version made faculty_admin.
         if user.role in User.STUDENT_ROLES or hasattr(user, "student_profile"):
             return User.STUDENT_ADMIN

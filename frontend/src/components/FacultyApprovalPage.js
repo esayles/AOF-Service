@@ -7,8 +7,11 @@ import {
   approveServiceLog,
   declineServiceLog,
   getServiceLogs,
+  updateServiceLog,
 } from '../API';
 import { useTableRowLimit } from './TableRowLimit';
+import EditServiceLogModal from './EditServiceLogModal';
+import { sortServiceLogsPendingFirst } from './dashboardUtils';
 
 // The FacultyApprovalPage component fetches pending service logs and allows faculty members to approve them.
 function FacultyApprovalPage() {
@@ -17,6 +20,8 @@ function FacultyApprovalPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [actioningId, setActioningId] = useState(null);
+  const [editingLog, setEditingLog] = useState(null);
+  const [savingLog, setSavingLog] = useState(false);
 
   const loadData = async () => {
     try {
@@ -66,11 +71,21 @@ function FacultyApprovalPage() {
     }
   };
 
-  const pendingLogs = logs.filter((log) => log.status === 'pending');
-  const sortedLogs = [...pendingLogs].sort((a, b) => {
-    const dateOrder = new Date(b.date_performed) - new Date(a.date_performed);
-    return dateOrder || b.id - a.id;
-  });
+  const handleSave = async (changes) => {
+    try {
+      setSavingLog(true);
+      await updateServiceLog(editingLog.id, changes);
+      setEditingLog(null);
+      setSuccess('Service log updated.');
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Unable to update this log.');
+    } finally {
+      setSavingLog(false);
+    }
+  };
+
+  const sortedLogs = sortServiceLogsPendingFirst(logs);
   const { visibleRows, rowLimitControl } = useTableRowLimit(sortedLogs);
 
   return (
@@ -78,7 +93,7 @@ function FacultyApprovalPage() {
       <div className="portal-surface">
         <p className="page-eyebrow">Faculty portal</p>
         <h3 className="page-heading">Faculty Service Hours</h3>
-        <p className="page-description">Approve or decline service-hour requests assigned to you as verifier.</p>
+        <p className="page-description">Approve or decline service-hour requests assigned to you as approver.</p>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -88,7 +103,7 @@ function FacultyApprovalPage() {
             <Spinner animation="border" size="sm" />
             Loading submissions...
           </div>
-        ) : pendingLogs.length === 0 ? (
+        ) : logs.length === 0 ? (
           <Alert variant="success">No service logs to review.</Alert>
         ) : (
           <>
@@ -112,8 +127,9 @@ function FacultyApprovalPage() {
                     <td>{log.date_performed}</td>
                     <td>{log.status === 'declined' ? <Badge bg="danger">Declined</Badge> : log.confirmed_by ? <Badge bg="success">Confirmed</Badge> : <Badge bg="warning" text="dark">Pending</Badge>}</td>
                     <td>
-                      {!log.confirmed_by && log.status !== 'declined' && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
-                      <Button size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>
+                      <Button className="me-2" size="sm" variant="outline-primary" onClick={() => setEditingLog(log)} disabled={actioningId === log.id}>Edit</Button>
+                      {log.status === 'pending' && <Button className="me-2" size="sm" variant="success" onClick={() => handleApprove(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Approving...' : 'Approve'}</Button>}
+                      {log.status !== 'declined' && <Button size="sm" variant="danger" onClick={() => handleDecline(log.id)} disabled={actioningId === log.id}>{actioningId === log.id ? 'Declining...' : 'Decline'}</Button>}
                     </td>
                   </tr>
                 ))}
@@ -123,6 +139,12 @@ function FacultyApprovalPage() {
           </>
         )}
       </div>
+      <EditServiceLogModal
+        log={editingLog}
+        onHide={() => setEditingLog(null)}
+        onSave={handleSave}
+        saving={savingLog}
+      />
     </div>
   );
 }

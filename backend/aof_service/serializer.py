@@ -26,7 +26,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     request_verifier = serializers.PrimaryKeyRelatedField(
         required=False,
         allow_null=True,
-        queryset=User.objects.filter(role__in=User.FACULTY_VERIFIER_ROLES),
+        queryset=User.objects.filter(role__in=User.FACULTY_APPROVER_ROLES),
     )
 
     class Meta:
@@ -66,7 +66,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         user = getattr(request, "user", None)
-        is_staff_user = getattr(user, "role", None) in User.FACULTY_VERIFIER_ROLES
+        is_staff_user = getattr(user, "role", None) in User.FACULTY_APPROVER_ROLES
 
         # Fixes error where a student can choose a different student when creating a ServiceHour obejct.
         if not is_staff_user and "student" in attrs:
@@ -84,7 +84,7 @@ class ServiceHourSerializer(serializers.ModelSerializer):
             })
 
         user = request.user
-        if getattr(user, "role", None) in User.FACULTY_VERIFIER_ROLES:
+        if getattr(user, "role", None) in User.FACULTY_APPROVER_ROLES:
             if "student" not in validated_data:
                 raise serializers.ValidationError({
                     "student": "Choose the student whose hours are being recorded."
@@ -149,7 +149,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
 
 
 class FacultySerializer(serializers.ModelSerializer):
-    """Listing of faculty/admin users so students can pick a verifier when logging actvisfty."""
+    """List faculty/admin users so students can choose an approver for an activity."""
 
     class Meta:
         model = User

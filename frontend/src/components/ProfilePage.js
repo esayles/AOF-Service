@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card, Table, Badge } from 'react-bootstrap';
 import { getMyServiceLogs } from '../API';
-import { getStudentSummary } from './dashboardUtils';
+import { getStudentSummary, sortServiceLogsPendingFirst } from './dashboardUtils';
 import { useTableRowLimit } from './TableRowLimit';
 
 function MilestoneProgress({ hours, goal, label, colorClass }) {
@@ -70,10 +70,7 @@ function ProfilePage() {
   }, []);
 
   const summary = getStudentSummary(serviceLogs);
-  const orderedServiceLogs = [...serviceLogs].sort((a, b) => {
-    const dateDifference = new Date(b.date_performed) - new Date(a.date_performed);
-    return dateDifference || b.id - a.id;
-  });
+  const orderedServiceLogs = sortServiceLogsPendingFirst(serviceLogs);
   const { visibleRows, rowLimitControl } = useTableRowLimit(orderedServiceLogs);
 
   const approvedHours = serviceLogs

@@ -110,7 +110,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # ---------------------------------------------------------------------------
-# Email (service-hour verification notifications)
+# Email (service-hour approval notifications)
 # Defaults to the console backend so local dev never sends real mail.
 # In production set EMAIL_BACKEND_MODE=smtp and provide SMTP creds via env
 # (works with Amazon SES SMTP credentials or any other ESP).
@@ -129,7 +129,7 @@ else:
 
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'AOF Service App <no-reply@avonoldfarms.com>')
 
-# Public address of the frontend that verification emails point faculty to.
+# Public address of the frontend that approval emails point faculty to.
 # settings/testing.py and settings/production.py each override the default so
 # an email never sends a teacher to the wrong deployment; set the env var to
 # override again (e.g. when production moves to service.avonoldfarms.com).
@@ -137,6 +137,6 @@ SERVICE_HOUR_APP_URL = os.environ.get('SERVICE_HOUR_APP_URL', 'http://localhost:
 
 # Safety valve for non-production deployments. When set, EVERY outgoing message
 # is delivered to this address instead of the real recipient, so students
-# exercising the verification flow on the testing site cannot email faculty
+# exercising the approval flow on the testing site cannot email faculty
 # about hours that do not exist. Leave unset in production.
 EMAIL_TEST_REDIRECT_TO = os.environ.get('EMAIL_TEST_REDIRECT_TO', '').strip()

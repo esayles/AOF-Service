@@ -1,5 +1,17 @@
 // Generate a summary of student service logs, including total hours, pending count, recent entries, and the latest entry.
 
+export function sortServiceLogsPendingFirst(serviceLogs = []) {
+  const normalizedLogs = Array.isArray(serviceLogs) ? serviceLogs : [];
+
+  return [...normalizedLogs].sort((a, b) => {
+    const pendingOrder = Number(b.status === 'pending') - Number(a.status === 'pending');
+    if (pendingOrder) return pendingOrder;
+
+    const dateOrder = new Date(b.date_performed || 0) - new Date(a.date_performed || 0);
+    return dateOrder || Number(b.id || 0) - Number(a.id || 0);
+  });
+}
+
 export function getStudentSummary(serviceLogs = []) {
   const normalizedLogs = Array.isArray(serviceLogs) ? serviceLogs : [];
 

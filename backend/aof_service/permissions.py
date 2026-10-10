@@ -9,7 +9,7 @@ class IsFacultyOrAdminPermission(BasePermission):
         user = getattr(request, "user", None)
         if not user or not getattr(user, "is_authenticated", False):
             return False
-        return getattr(user, "role", None) in User.FACULTY_VERIFIER_ROLES
+        return getattr(user, "role", None) in User.FACULTY_APPROVER_ROLES
 
 # Gives administrative operations only to admins of the app (THANK YOU IF YOU'RE READING THIS!!!!)
 class IsAdminPermission(BasePermission):

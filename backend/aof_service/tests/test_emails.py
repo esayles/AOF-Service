@@ -3,12 +3,12 @@ from datetime import date
 from django.core import mail
 from django.test import TestCase, override_settings
 
-from aof_service.emails import send_verification_request
+from aof_service.emails import send_approval_request
 from aof_service.models import ServiceHour, StudentProfile, User
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class VerificationEmailTests(TestCase):
+class ApprovalEmailTests(TestCase):
     def setUp(self):
         self.student_user = User.objects.create_user(
             username="student@example.com",
@@ -27,25 +27,26 @@ class VerificationEmailTests(TestCase):
             role=User.FACULTY,
         )
 
-    def _log(self, verifier=None):
+    def _log(self, approver=None):
         return ServiceHour.objects.create(
             student=self.profile,
             description="Raked leaves",
             hours=2,
             date_performed=date.today(),
-            request_verifier=verifier,
+            request_verifier=approver,
         )
 
     @override_settings(EMAIL_TEST_REDIRECT_TO="")
-    def test_sends_to_requested_verifier(self):
-        self.assertTrue(send_verification_request(self._log(self.faculty)))
+    def test_sends_to_requested_approver(self):
+        self.assertTrue(send_approval_request(self._log(self.faculty)))
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["teacher@example.com"])
-        self.assertEqual(mail.outbox[0].subject, "Service Hour Verification Request")
+        self.assertEqual(mail.outbox[0].subject, "Service Hour Approval Request")
+        self.assertIn("requested your approval", mail.outbox[0].body)
 
     @override_settings(EMAIL_TEST_REDIRECT_TO="inbox@example.com")
     def test_redirect_diverts_mail_away_from_faculty(self):
-        self.assertTrue(send_verification_request(self._log(self.faculty)))
+        self.assertTrue(send_approval_request(self._log(self.faculty)))
         self.assertEqual(len(mail.outbox), 1)
         sent = mail.outbox[0]
         # The teacher must not be contacted...
@@ -56,17 +57,17 @@ class VerificationEmailTests(TestCase):
 
     @override_settings(EMAIL_TEST_REDIRECT_TO="", SERVICE_HOUR_APP_URL="https://service.example.com/")
     def test_body_links_to_configured_app_url(self):
-        send_verification_request(self._log(self.faculty))
+        send_approval_request(self._log(self.faculty))
         # Trailing slash is stripped so the sentence reads cleanly.
-        self.assertIn("https://service.example.com to confirm", mail.outbox[0].body)
+        self.assertIn("https://service.example.com to approve", mail.outbox[0].body)
 
     @override_settings(EMAIL_TEST_REDIRECT_TO="", SERVICE_HOUR_APP_URL="")
     def test_missing_app_url_omits_link_rather_than_guessing(self):
-        send_verification_request(self._log(self.faculty))
+        send_approval_request(self._log(self.faculty))
         body = mail.outbox[0].body
         self.assertIn("log in to the AOF Service app", body)
         self.assertNotIn("http", body)
 
-    def test_no_verifier_sends_nothing(self):
-        self.assertFalse(send_verification_request(self._log(None)))
+    def test_no_approver_sends_nothing(self):
+        self.assertFalse(send_approval_request(self._log(None)))
         self.assertEqual(len(mail.outbox), 0)

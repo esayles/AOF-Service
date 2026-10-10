@@ -1,4 +1,4 @@
-"""Email notifications for service-hour verification.
+"""Email notifications for service-hour approval.
 
 Uses Django's email framework, so the actual transport is controlled by
 settings/environment variables (console backend locally, SMTP/Amazon SES
@@ -23,7 +23,7 @@ def send_app_mail(subject, message, recipients):
        deployments), the message is delivered to that single address instead
        of the real recipient. The intended recipients are kept in the subject
        so the redirected copy is still readable. This is what lets students
-       exercise the verification flow without emailing faculty about hours
+    exercise the approval flow without emailing faculty about hours
        that do not exist.
     2. Failures are logged, never raised. A broken mail server should not
        stop a student from logging their hours.
@@ -53,10 +53,10 @@ def send_app_mail(subject, message, recipients):
         return False
 
 
-def send_verification_request(service_hour):
-    """Notify the requested faculty verifier that a student logged hours."""
-    verifier = service_hour.request_verifier
-    if verifier is None or not verifier.email:
+def send_approval_request(service_hour):
+    """Notify the requested faculty approver that a student logged hours."""
+    approver = service_hour.request_verifier
+    if approver is None or not approver.email:
         return False
 
     student_user = service_hour.student.user
@@ -66,19 +66,19 @@ def send_verification_request(service_hour):
     # somehow unset, omit the link rather than sending a wrong one.
     app_url = getattr(settings, "SERVICE_HOUR_APP_URL", "").rstrip("/")
     closing = (
-        f"Please log in to {app_url} to confirm these hours.\n"
+        f"Please log in to {app_url} to approve these hours.\n"
         if app_url
-        else "Please log in to the AOF Service app to confirm these hours.\n"
+        else "Please log in to the AOF Service app to approve these hours.\n"
     )
 
-    subject = "Service Hour Verification Request"
+    subject = "Service Hour Approval Request"
     message = (
-        f"Dear {verifier.first_name or verifier.username},\n\n"
+        f"Dear {approver.first_name or approver.username},\n\n"
         f"{student_user.first_name} {student_user.last_name} has logged "
         f"{service_hour.hours} service hour(s) on {service_hour.date_performed} "
-        f"and requested your verification.\n\n"
+        f"and requested your approval.\n\n"
         f"Description: {service_hour.description}\n\n"
         f"{closing}"
     )
 
-    return send_app_mail(subject, message, [verifier.email])
+    return send_app_mail(subject, message, [approver.email])

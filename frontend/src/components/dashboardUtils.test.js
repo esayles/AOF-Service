@@ -1,6 +1,19 @@
 // Simple tests for the summary logic in dashboardUtils.js.
 
-import { getStudentSummary } from './dashboardUtils';
+import { getStudentSummary, sortServiceLogsPendingFirst } from './dashboardUtils';
+
+describe('sortServiceLogsPendingFirst', () => {
+  test('puts pending logs first and preserves date order within each status', () => {
+    const sortedLogs = sortServiceLogsPendingFirst([
+      { id: 1, status: 'pending', date_performed: '2026-07-01' },
+      { id: 2, status: 'confirmed', date_performed: '2026-09-01' },
+      { id: 3, status: 'declined', date_performed: '2026-08-01' },
+      { id: 4, status: 'pending', date_performed: '2026-08-15' },
+    ]);
+
+    expect(sortedLogs.map((log) => log.id)).toEqual([4, 1, 2, 3]);
+  });
+});
 
 describe('getStudentSummary', () => {
   test('calculates totals and recent entries from service logs', () => {

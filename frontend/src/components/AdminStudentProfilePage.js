@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Badge, Button, Card, Spinner, Table } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getAdminStudentProfile } from '../API';
-import { getStudentSummary } from './dashboardUtils';
+import { getStudentSummary, sortServiceLogsPendingFirst } from './dashboardUtils';
 import { useTableRowLimit } from './TableRowLimit';
 
 function AdminStudentProfilePage() {
@@ -34,7 +34,8 @@ function AdminStudentProfilePage() {
   }, [userId]);
 
   const summary = getStudentSummary(serviceLogs);
-  const { visibleRows, rowLimitControl } = useTableRowLimit(serviceLogs);
+  const orderedServiceLogs = sortServiceLogsPendingFirst(serviceLogs);
+  const { visibleRows, rowLimitControl } = useTableRowLimit(orderedServiceLogs);
   const studentName = student ? `${student.first_name} ${student.last_name}`.trim() || student.username : 'Student';
 
   return (
