@@ -36,6 +36,7 @@ from .serializer import (
 from .permissions import IsAdminPermission, IsFacultyOrAdminPermission, IsSchoolActivityAdminPermission
 
 User = get_user_model()
+SCHOOL_YEAR_CUTOFF = date(2026, 6, 1)
 
 
 class ServiceHourViewSet(viewsets.ModelViewSet):
@@ -169,11 +170,10 @@ class LeaderboardView(APIView):
             qs = StudentProfile.objects.order_by("-cached_total_hours")[:10]
             return Response(StudentProfileSerializer(qs, many=True).data)
 
-        cutoff = date(2026, 6, 1)
         date_filter = (
-            Q(service_hours__date_performed__lt=cutoff)
+            Q(service_hours__date_performed__lt=SCHOOL_YEAR_CUTOFF)
             if period == "last-year"
-            else Q(service_hours__date_performed__gte=cutoff)
+            else Q(service_hours__date_performed__gte=SCHOOL_YEAR_CUTOFF)
         )
         qs = StudentProfile.objects.select_related("user").annotate(
             period_hours=Coalesce(
@@ -191,6 +191,50 @@ class LeaderboardView(APIView):
         results = StudentProfileSerializer(students, many=True).data
         for student, result in zip(students, results):
             result["total_hours"] = f"{student.period_hours:.2f}"
+        return Response(results)
+
+
+class AdminLeaderboardView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminPermission]
+
+    def get(self, request):
+        """Return all students ranked by hours for an optional school-year period."""
+        period = request.query_params.get("period", "total")
+        if period not in ("total", "last-year", "this-year"):
+            raise ValidationError({"period": "Choose 'total', 'last-year', or 'this-year'."})
+
+        minimum_hours = request.query_params.get("minimum_hours")
+        if minimum_hours not in (None, "30", "100"):
+            raise ValidationError({"minimum_hours": "Choose 30 or 100."})
+
+        date_filter = Q()
+        if period == "last-year":
+            date_filter = Q(service_hours__date_performed__lt=SCHOOL_YEAR_CUTOFF)
+        elif period == "this-year":
+            date_filter = Q(service_hours__date_performed__gte=SCHOOL_YEAR_CUTOFF)
+
+        qs = StudentProfile.objects.filter(
+            user__role__in=User.STUDENT_ROLES
+        ).select_related("user").annotate(
+            leaderboard_hours=Coalesce(
+                Sum(
+                    "service_hours__hours",
+                    filter=date_filter
+                    & Q(service_hours__status__in=(ServiceHour.PENDING, ServiceHour.CONFIRMED)),
+                ),
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=7, decimal_places=2),
+            )
+        )
+        if minimum_hours is not None:
+            qs = qs.filter(leaderboard_hours__gte=Decimal(minimum_hours))
+
+        students = list(qs.order_by(
+            "-leaderboard_hours", "user__last_name", "user__first_name", "user__id"
+        ))
+        results = StudentProfileSerializer(students, many=True).data
+        for student, result in zip(students, results):
+            result["total_hours"] = f"{student.leaderboard_hours:.2f}"
         return Response(results)
 
 
