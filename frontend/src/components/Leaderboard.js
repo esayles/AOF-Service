@@ -1,5 +1,5 @@
 import React from "react";
-import {Table, Card, Container} from "react-bootstrap";
+import {Table, Card, Container, Nav} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { fetchLeaderboard } from "../Services/LeaderboardService";
 import { isAdmin } from "../auth/auth";
@@ -9,24 +9,27 @@ function Leaderboard() {
     const [loading, setLoading] = React.useState(true); // State to track loading status, initialized as true
     const [error, setError] = React.useState(null); // State to store any error messages, initialized as null
     const [hoveredRow, setHoveredRow] = React.useState(null);
+    const [period, setPeriod] = React.useState("this-year");
     const navigate = useNavigate();
     const canViewProfiles = isAdmin();
    
     React.useEffect(() => {
+      let isCurrentRequest = true;
         async function loadLeaderboard() {
+        setLoading(true);
+        setError(null);
             try {
-                const data = await fetchLeaderboard();
-                setStudents(data);
-                setLoading(false);
+          const data = await fetchLeaderboard(period);
+          if (isCurrentRequest) setStudents(data);
             } catch (error) {
-                setError(error.message);
-                setLoading(false);
+          if (isCurrentRequest) setError(error.message);
+        } finally {
+          if (isCurrentRequest) setLoading(false);
             }
         }
         loadLeaderboard();
-    //The empty array makes this effect runs once on component mount, then again when the count changes.
-    //The dependencies can be changed with filters so the leaderboard has live updates... future integration. 
-    }, []); 
+      return () => { isCurrentRequest = false; };
+    }, [period]);
 
 
     //sets custom colors for the rows, makes the top three gold, silver, and bronze respectivly. 
@@ -79,15 +82,6 @@ function Leaderboard() {
         return style;
       }
 
-    //loading message for slow connection.
-    if (loading){
-        return <div className="leaderboard-page text-muted">Loading leaderboard...</div>;
-    }
-    //red error message if connection failed. 
-    if (error){
-        return <div className="leaderboard-page text-danger">{error}</div>;
-    }
-
     return (
         //mt-4 and mb-3 are bootstrap classes for margin spacing between elements and edges. 
         <Container className="leaderboard-page px-0">
@@ -95,7 +89,25 @@ function Leaderboard() {
                 <Card.Body>
                     <p className="page-eyebrow">Community impact</p>
                     <h2 className= "page-heading mb-3">Leaderboard</h2>
-                    <Table striped bordered hover responsive>
+                    <Nav
+                      variant="tabs"
+                      activeKey={period}
+                      onSelect={(key) => key && setPeriod(key)}
+                      className="mb-3"
+                      aria-label="Leaderboard year"
+                    >
+                          <Nav.Item>
+                            <Nav.Link eventKey="total">Total</Nav.Link>
+                      </Nav.Item>
+                      <Nav.Item>
+                        <Nav.Link eventKey="this-year">This year</Nav.Link>
+                      </Nav.Item>
+                    </Nav>
+                    {loading ? (
+                      <div className="text-muted" role="status">Loading leaderboard...</div>
+                    ) : error ? (
+                      <div className="text-danger" role="alert">{error}</div>
+                    ) : <Table striped bordered hover responsive>
                             {/* defign the rows and the headers for each cell in the row */}
                         <thead>
                             <tr> 
@@ -129,7 +141,7 @@ function Leaderboard() {
                                 </tr>
                             ))}
                         </tbody>
-                    </Table>
+                    </Table>}
                 </Card.Body>
             </Card>
         </Container>

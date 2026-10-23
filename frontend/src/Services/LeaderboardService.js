@@ -3,9 +3,10 @@
 import { API_URL } from "../API";
 import { apiFetch } from "../auth/apiClient";
 
-export async function fetchLeaderboard() {
+export async function fetchLeaderboard(period) {
+  const periodQuery = period === "total" ? "" : `?period=${encodeURIComponent(period)}`;
 
-  const response = await(apiFetch(`${API_URL}/api/leaderboard/`, {
+  const response = await(apiFetch(`${API_URL}/api/leaderboard/${periodQuery}`, {
     method: "GET", headers: {"Content-Type": "application/json", },
   }
 ));
@@ -25,6 +26,5 @@ if(!response.ok) {
   //debugging
   console.log("Fetched leaderboard:", data);
 
-  const sortedStuents = [...data].sort((a, b) => b.hours - a.hours); // Sort by hours in descending order
-  return sortedStuents;
+  return [...data].sort((a, b) => Number(b.total_hours) - Number(a.total_hours));
 }

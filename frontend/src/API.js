@@ -119,6 +119,17 @@ export const getAdminActivities = async () => {
   });
   return readResponse(response, 'Unable to load school activities.');
 };
+
+export const getAdminLeaderboard = async (period, minimumHours) => {
+  const params = new URLSearchParams({ period });
+  if (minimumHours) {
+    params.set('minimum_hours', minimumHours);
+  }
+  const response = await fetch(`${API_URL}/api/admin/leaderboard/?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  return readResponse(response, 'Unable to load the student leaderboard.');
+};
 //allows for future additions to the admin testing panel 
 export const updateAdminPreferences = async (preferences) => {
   const response = await fetch(`${API_URL}/api/admin/preferences/`, {
