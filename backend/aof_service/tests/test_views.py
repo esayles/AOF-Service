@@ -502,6 +502,135 @@ class LeaderboardViewTests(TestCase):
         declined_student = next(row for row in res.data if row["username"] == "declined_student")
         self.assertEqual(declined_student["total_hours"], "0.00")
 
+    def test_leaderboard_periods_split_on_june_first_2026(self):
+        last_year_user = User.objects.create_user(
+            username="last_year_student", password="pass", email="last-year@example.com"
+        )
+        last_year_profile = StudentProfile.objects.create(user=last_year_user)
+        this_year_user = User.objects.create_user(
+            username="this_year_student", password="pass", email="this-year@example.com"
+        )
+        this_year_profile = StudentProfile.objects.create(user=this_year_user)
+        ServiceHour.objects.create(
+            student=last_year_profile,
+            description="Last day of last year",
+            hours=Decimal("5.00"),
+            date_performed=date(2026, 5, 31),
+        )
+        ServiceHour.objects.create(
+            student=this_year_profile,
+            description="First day of this year",
+            hours=Decimal("7.00"),
+            date_performed=date(2026, 6, 1),
+        )
+        self.client.force_authenticate(user=self.viewer)
+
+        last_year = self.client.get("/api/leaderboard/?period=last-year")
+        this_year = self.client.get("/api/leaderboard/?period=this-year")
+
+        self.assertEqual(last_year.status_code, 200, last_year.content)
+        self.assertEqual(this_year.status_code, 200, this_year.content)
+        last_year_hours = {row["username"]: row["total_hours"] for row in last_year.data}
+        this_year_hours = {row["username"]: row["total_hours"] for row in this_year.data}
+        self.assertEqual(last_year_hours["last_year_student"], "5.00")
+        self.assertEqual(last_year_hours["this_year_student"], "0.00")
+        self.assertEqual(this_year_hours["last_year_student"], "0.00")
+        self.assertEqual(this_year_hours["this_year_student"], "7.00")
+
+
+class AdminLeaderboardViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_user(
+            username="leaderboard-admin",
+            password="test-password",
+            email="leaderboard-admin@example.com",
+            role=User.ADMIN,
+        )
+        self.client.force_authenticate(user=self.admin)
+
+    def create_student(self, username, role=User.STUDENT):
+        user = User.objects.create_user(
+            username=username,
+            password="test-password",
+            email=f"{username}@example.com",
+            role=role,
+        )
+        return StudentProfile.objects.create(user=user)
+
+    def test_returns_all_students_including_zero_hour_student_admin(self):
+        profiles = [
+            self.create_student(f"student-{index}")
+            for index in range(12)
+        ]
+        student_admin = self.create_student("student-admin", User.STUDENT_ADMIN)
+        ServiceHour.objects.create(
+            student=student_admin,
+            description="Approved hours",
+            hours=Decimal("3.00"),
+            date_performed=date.today(),
+        )
+
+        response = self.client.get("/api/admin/leaderboard/")
+
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(len(response.data), 13)
+        self.assertEqual(response.data[0]["user_id"], student_admin.user_id)
+        self.assertEqual(response.data[-1]["total_hours"], "0.00")
+        self.assertTrue({profile.user_id for profile in profiles}.issubset(
+            {row["user_id"] for row in response.data}
+        ))
+
+    def test_period_and_hours_filters_use_selected_period_totals(self):
+        profile = self.create_student("filtered-student")
+        ServiceHour.objects.create(
+            student=profile,
+            description="Before cutoff",
+            hours=Decimal("30.00"),
+            date_performed=date(2026, 5, 31),
+        )
+        ServiceHour.objects.create(
+            student=profile,
+            description="At cutoff",
+            hours=Decimal("70.00"),
+            date_performed=date(2026, 6, 1),
+        )
+        ServiceHour.objects.create(
+            student=profile,
+            description="Declined hours",
+            hours=Decimal("100.00"),
+            date_performed=date(2026, 6, 2),
+            status=ServiceHour.DECLINED,
+        )
+
+        last_year = self.client.get(
+            "/api/admin/leaderboard/?period=last-year&minimum_hours=30"
+        )
+        this_year = self.client.get(
+            "/api/admin/leaderboard/?period=this-year&minimum_hours=100"
+        )
+        total = self.client.get("/api/admin/leaderboard/?minimum_hours=100")
+
+        self.assertEqual(last_year.status_code, 200, last_year.content)
+        self.assertEqual([row["total_hours"] for row in last_year.data], ["30.00"])
+        self.assertEqual(this_year.status_code, 200, this_year.content)
+        self.assertEqual(this_year.data, [])
+        self.assertEqual(total.status_code, 200, total.content)
+        self.assertEqual([row["total_hours"] for row in total.data], ["100.00"])
+
+    def test_only_admins_can_view_admin_leaderboard(self):
+        student = User.objects.create_user(
+            username="not-admin",
+            password="test-password",
+            email="not-admin@example.com",
+            role=User.STUDENT,
+        )
+        self.client.force_authenticate(user=student)
+
+        response = self.client.get("/api/admin/leaderboard/")
+
+        self.assertEqual(response.status_code, 403)
+
 
 class AdminUserManagementTests(TestCase):
     def setUp(self):

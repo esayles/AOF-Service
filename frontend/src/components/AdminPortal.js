@@ -21,6 +21,7 @@ import {
 import { getUserId, getUserRole, isAdmin, setUserRole } from '../auth/auth';
 import { useTableRowLimit } from './TableRowLimit';
 import AdminStudentSearch from './AdminStudentSearch';
+import AdminLeaderboard from './AdminLeaderboard';
 import EditServiceLogModal from './EditServiceLogModal';
 import { sortServiceLogsPendingFirst } from './dashboardUtils';
 
@@ -223,7 +224,7 @@ function AdminPortal() {
       <div className="portal-surface">
         <p className="page-eyebrow">Administration</p>
         <h2 className="page-heading">Admin Portal</h2>
-        <p className="page-description">Manage application users and import the school user directory.</p>
+        <p className="page-description">Manage users, review student service hours, and import the school directory.</p>
 
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
@@ -318,6 +319,10 @@ function AdminPortal() {
                 {rowLimitControl}
               </>
             )}
+          </Tab>
+
+          <Tab eventKey="leaderboard" title="Leaderboard">
+            <AdminLeaderboard active={searchParams.get('tab') === 'leaderboard'} />
           </Tab>
 
           <Tab eventKey="testing" title="Testing">
